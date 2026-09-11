@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Street Book — Covenant Builders</title>
+<meta name="description" content="Covenant Builders field guide: the storm neighbourhoods, the streets, the satellite, and what to say at the door.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --navy:#12182B; --panel:#1a2238; --panel2:#232c46; --sand:#c4a574; --word:#e9e7e2;
+  --gold:#d4a24c; --red:#c1524a; --green:#6a9a6f; --line:rgba(233,231,226,.14);
+  --dim:#9aa3b8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--navy);color:var(--word);
+  font-family:"Source Sans 3","Source Sans Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%}
+body{padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3,.disp{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-weight:600}
+a{color:var(--sand)}
+.wrap{max-width:960px;margin:0 auto;padding:18px}
+/* ---------- lockup ---------- */
+.lockup{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 0 6px}
+.lrule{width:190px;height:1px;background:var(--sand);opacity:.8}
+.crown{display:block}
+.lname{font-size:12.5px;letter-spacing:.20em;color:var(--word);text-transform:uppercase}
+.lpromise{font-size:7.5px;letter-spacing:.34em;color:var(--sand);text-transform:uppercase}
+.appname{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:26px;letter-spacing:.02em;margin:10px 0 2px;text-align:center}
+.sub{text-align:center;color:var(--dim);font-size:14px;margin:0 0 6px}
+/* ---------- cards ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
+.card h2{margin:0 0 4px;font-size:20px}
+.card h3{margin:14px 0 6px;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sand)}
+.meta{color:var(--dim);font-size:13.5px;margin:2px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--word)}
+.chip.hot{background:rgba(212,162,76,.16);border-color:rgba(212,162,76,.5);color:var(--gold)}
+.chip.warn{background:rgba(193,82,74,.16);border-color:rgba(193,82,74,.5);color:#e79a94}
+.routebtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--panel2);border:1px solid var(--line);color:var(--word);border-radius:8px;padding:12px;margin:8px 0;cursor:pointer;font-size:15px}
+.routebtn:hover{border-color:var(--sand)}
+.routebtn b{display:block;font-size:16px}
+.routebtn small{color:var(--dim);font-size:12.5px}
+.go{color:var(--sand);font-size:22px;line-height:1}
+.warnbox{border-left:3px solid var(--red);background:rgba(193,82,74,.10);padding:12px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+.warnbox h3{color:#e79a94;margin-top:0}
+.okbox{border-left:3px solid var(--sand);background:rgba(196,165,116,.08);padding:12px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+ul{margin:6px 0;padding-left:20px}li{margin:5px 0;font-size:14.5px;line-height:1.45}
+p{font-size:14.5px;line-height:1.5}
+.src{color:var(--dim);font-size:11.5px}
+.src a{color:var(--dim)}
+/* ---------- route screen ---------- */
+#route{display:none}
+.rbar{position:sticky;top:0;z-index:600;background:var(--navy);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;padding:8px 12px;height:50px}
+.rbar b{font-size:15px}
+.rbar small{color:var(--dim);font-size:12px;display:block}
+.back{background:none;border:1px solid var(--line);color:var(--word);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
+#map{height:56vh;min-height:300px;width:100%;background:#0c101c}
+.maptools{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--word);border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer}
+.btn.prime{background:var(--sand);color:#12182B;border-color:var(--sand);font-weight:600}
+.btn:active{transform:translateY(1px)}
+.tabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:50px;background:var(--navy);z-index:500}
+.tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);padding:11px 4px;font-size:14px;cursor:pointer}
+.tab.on{color:var(--word);border-bottom-color:var(--sand)}
+.pane{display:none;padding:4px 12px 30px}.pane.on{display:block}
+/* ---------- door list ---------- */
+.door{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:9px 2px}
+.door .n{width:26px;color:var(--dim);font-size:12px;flex:none}
+.door .ad{flex:1;min-width:0}
+.door .ad b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.door .ad small{color:var(--dim);font-size:12px}
+.door .yr{font-size:12px;padding:2px 7px;border-radius:4px;flex:none}
+.mk{display:flex;gap:4px;flex:none}
+.mk button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:13px;cursor:pointer}
+.mk button.on{background:var(--sand);color:#12182B;border-color:var(--sand);font-weight:700}
+.y0{background:rgba(193,82,74,.22);color:#e79a94}
+.y1{background:rgba(212,162,76,.20);color:var(--gold)}
+.y2{background:rgba(196,165,116,.18);color:var(--sand)}
+.y3{background:rgba(154,163,184,.18);color:var(--dim)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--dim);padding:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.count{font-size:13px;color:var(--dim);padding:6px 0}
+.note{font-size:12.5px;color:var(--dim);margin:8px 0}
+table.sheet{width:100%;border-collapse:collapse;font-size:12px}
+table.sheet th,table.sheet td{border:1px solid #999;padding:4px 5px;text-align:left}
+#sheet{display:none}
+.loading{padding:20px;text-align:center;color:var(--dim)}
+.foot{max-width:36ch;margin:24px auto;text-align:center;color:var(--dim);font-size:12px;line-height:1.6}
+.foot b{color:var(--word)}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--word);border-radius:8px}
+.leaflet-popup-tip{background:var(--panel)}
+.leaflet-popup-content{margin:10px 12px;font-size:13.5px}
+.leaflet-popup-content b{font-size:15px}
+.leaflet-container{background:#0c101c;font-family:inherit}
+.pin{font:700 11px/20px system-ui;text-align:center;color:#12182B;border-radius:50%;border:2px solid #12182B}
+@media print{
+  body{background:#fff;color:#000}
+  .noprint,#home,.rbar,#map,.maptools,.tabs,.pane{display:none !important}
+  #sheet{display:block !important;color:#000}
+  #sheet h2{margin:0 0 4px}
+}
+@media (max-width:520px){
+  .wrap{padding:12px}.appname{font-size:22px}#map{height:52vh}
+}
+</style>
+</head>
+<body>
+<!-- ================= HOME ================= -->
+<div id="home">
+<div class="wrap">
+  <div class="lockup">
+    <div class="lrule"></div>
+    <svg class="crown" width="17" height="15" viewBox="0 0 147 121" aria-hidden="true">
+      <path d="M11,116 L2,55 L45,66 L73,3 L101,66 L145,55 L136,116 Z" fill="none" stroke="#c4a574" stroke-width="13" stroke-linejoin="miter"/>
+    </svg>
+    <div class="lrule"></div>
+    <div class="lname">Covenant Builders</div>
+    <div class="lpromise">We Deliver</div>
+  </div>
+  <div class="appname">The Street Book</div>
+  <p class="sub">Three storm areas. Seven streets to walk. What hit, who lives there, and what a neighbour would say.</p>
+
+  <div class="warnbox">
+    <h3>Read this before you knock</h3>
+    <p id="permitline"><b>Florida requires a permit to knock cold doors.</b> A “home solicitation sale” — selling goods or services at somebody’s house without being invited — needs a <b>Home Solicitation Sale permit</b> from the <b>Clerk of Court in that county</b> under F.S. 501.022. Brevard charges $100 plus a $24 background check, takes fingerprints, and the permit runs one year. Contractors are <b>not</b> on the exemption list. Invited visits are.</p>
+    <ul>
+      <li><b>You can’t sign a roof.</b> F.S. 489.113(3) makes a Certified Building Contractor subcontract roofing, and Covenant has no approved roofer yet. Knock, look, list — don’t sign the roof scope.</li>
+      <li><b>Never say “you have damage”</b> before you’ve been on the roof, and never say what insurance will cover. The carrier decides.</li>
+      <li><b>F.S. 489.147</b> — no paying or waiving deductibles, no gifts for signing, no referral money, and no interpreting the policy or adjusting the claim without a public adjuster licence.</li>
+      <li><b>Hours:</b> knock from about 3:30pm to dusk. Before 4 is empty, after dark is rude.</li>
+    </ul>
+    <p class="src">Sources: <a href="http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.022.html" target="_blank" rel="noopener">F.S. 501.022</a> · <a href="https://www.brevardclerk.us/home-solicitation-permit" target="_blank" rel="noopener">Brevard Clerk</a> · F.S. 489.113(3) · F.S. 489.147</p>
+  </div>
+
+  <div id="areas"></div>
+
+  <div class="card">
+    <h3>What the numbers here mean</h3>
+    <ul>
+      <li><b>Hail size</b> is what a person on the ground reported to the National Weather Service that day. One inch is where shingles start taking real damage.</li>
+      <li><b>Days to file</b> counts down one year from the date of the storm — F.S. 627.70132. A supplement runs eighteen months.</li>
+      <li><b>Year built</b> comes from the Florida Department of Revenue’s 2025 tax roll. It is the <b>house’s</b> age, not the roof’s. A 1989 house can wear a 2019 roof. The record points you at a street; the roof tells the truth.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <b>Covenant Builders</b> · CBC1253676 · (772) 473-7115<br>
+    Vero Beach · Sebastian · Fort Pierce · Port St. Lucie · Fellsmere<br>
+    Hablamos español.
+  </div>
+</div>
+</div>
+
+<!-- ================= ROUTE ================= -->
+<div id="route">
+  <div class="rbar noprint">
+    <button class="back" onclick="goHome()">&larr;</button>
+    <div style="flex:1;min-width:0"><b id="rname">—</b><small id="rsub">—</small></div>
+  </div>
+  <div id="map"></div>
+  <div class="maptools noprint">
+    <button class="btn prime" onclick="openDrive()">Drive it in Google Maps</button>
+    <button class="btn" onclick="locateMe()" id="gpsbtn">Where am I</button>
+    <button class="btn" onclick="window.print()">Print walk sheet</button>
+    <button class="btn" onclick="reload()">Refresh records</button>
+  </div>
+  <div class="tabs noprint">
+    <button class="tab on" data-p="doors" onclick="tab('doors')">Doors</button>
+    <button class="tab" data-p="area" onclick="tab('area')">The area</button>
+    <button class="tab" data-p="say" onclick="tab('say')">What to say</button>
+  </div>
+  <div class="pane on" id="p-doors"></div>
+  <div class="pane" id="p-area"></div>
+  <div class="pane" id="p-say"></div>
+  <div id="sheet"></div>
+</div>
+<script>
+/* ============================================================
+   THE STREET BOOK — data
+   Storm reports: NWS Local Storm Reports (Iowa Environmental Mesonet archive),
+   read 11 Sep 2026. Parcels: Florida Dept. of Revenue 2025 cadastral, live.
+   ============================================================ */
+const YARD = [27.6386, -80.3973];           /* Vero Beach */
+const TODAY = new Date();
+
+const AREAS = [
+ {
+  id:'hail', name:'The hail core', when:'15 March 2026', loss:'2026-03-15',
+  head:'Golf-ball hail, 60–65 mph gusts, one narrow band',
+  blurb:'The biggest confirmed hail in Florida in the last year fell here, in a band about four miles wide. Four people on the ground reported it — one of them an off-duty National Weather Service employee. 1.75 inches is golf ball. Shingles start taking functional damage at one inch.',
+  zips:'32950 Malabar · 32949 Grant · 32909 / 32908 Palm Bay · 32976 Micco · 32951 Melbourne Beach',
+  score:'Scores 90–97 on your Storm Map. 18–30 miles from the yard.',
+  reports:[
+   {lat:27.94,lon:-80.61,mag:'1.75 in',kind:'hail',t:'3:49pm',txt:'Spotter SLC-211 reported half-inch to golf-ball sized hail on I-95 between mile markers 168 and 169.'},
+   {lat:27.96,lon:-80.62,mag:'1.5 in',kind:'hail',t:'4:00pm',txt:'Public reported hail of 1.0 to 1.5 inches near Paragon Rd and Babcock St in southeast Palm Bay.'},
+   {lat:27.94,lon:-80.60,mag:'1 in',kind:'hail',t:'3:37pm',txt:'Off-duty NWS employee reported dime to quarter sized hail near Ramblebrook St in Malabar.'},
+   {lat:27.92,lon:-80.62,mag:'65 mph',kind:'wind',t:'3:32pm',txt:'Spotter BRE-324 reported 60–65 mph gusts and estimated hail of 1.0 to 1.25 inches, three miles east-southeast of Bayside Lakes.'}
+  ]
+ },
+ {
+  id:'north', name:'Palm Bay north & Melbourne', when:'15 March 2026 and 26 August 2026', loss:'2026-03-15',
+  head:'One inch of hail at Malabar Rd and I-95, then a measured 61 mph gust in August',
+  blurb:'Thinner than the core, and you should know that walking in. March 15 put an inch of hail at Malabar Rd and I-95 and 60–65 mph estimated gusts over Melbourne. On 26 August the Melbourne airport measured a 61 mph gust — measured, not estimated, and nobody reported damage from it.',
+  zips:'32905 / 32907 Palm Bay · 32901 / 32904 Melbourne · 32903 Indialantic · 32937 Satellite Beach',
+  score:'⚠ Your Storm Map shows 350 days left to file on 32905 and 32907. That clock is counting from the 26 August gust. If the damage is the March hail, the real clock is the March one.',
+  reports:[
+   {lat:28.01,lon:-80.64,mag:'1 in',kind:'hail',t:'15 Mar, 3:58pm',txt:'Resident reported penny to quarter sized hail in Palm Bay near Malabar Rd and I-95.'},
+   {lat:28.08,lon:-80.61,mag:'65 mph',kind:'wind',t:'15 Mar, 3:32pm',txt:'Spotter report logged three miles west-southwest of Indialantic — 60–65 mph estimated gusts.'},
+   {lat:28.10,lon:-80.65,mag:'61 mph',kind:'wind',t:'26 Aug, 4:13pm',txt:'Melbourne International Airport measured a peak gust of 61 mph from the southeast.'}
+  ]
+ },
+ {
+  id:'fp', name:'Fort Pierce west', when:'28 February 2026', loss:'2026-02-28',
+  head:'One inch of hail, one photograph, thirteen miles from the yard',
+  blurb:'The closest storm to your yard and the smallest. One report: a picture on social media of quarter-sized hail off Orange Ave west of the Florida Turnpike. One inch is the bottom edge of functional shingle damage. Knock this one with a question, never a claim.',
+  zips:'34945 · 34947 · 34981 Fort Pierce',
+  score:'Scores 45 — “worth a look”, not a day. Radar saw more here in August than the ground did.',
+  reports:[
+   {lat:27.45,lon:-80.46,mag:'1 in',kind:'hail',t:'3:25pm',txt:'Picture on social media of quarter sized hail off Orange Ave west of the Florida Turnpike.'}
+  ]
+ }
+];
+
+const ROUTES = [
+ {id:'r1', area:'hail', name:'Corey & Ramblebrook', town:'Malabar',
+  why:'The NWS man who called in the hail was standing on Ramblebrook St. You are knocking the exact block that got reported.',
+  center:[27.9400,-80.6000], d:0.013,
+  streets:['COREY RD','RAMBLEBROOK ST','FARNSWORTH AVE','GREYTWIG PL','FLAMEVINE PL','SERNA AVE'],
+  park:'Park at the Corey Rd end and walk in. Big lots, long driveways — this is a slow, friendly street, not a numbers street.'},
+
+ {id:'r2', area:'hail', name:'Paragon & Talavera', town:'Southeast Palm Bay',
+  why:'One to one-and-a-half inch hail was reported at Paragon Rd and Babcock St. Dense, newer, walkable — the most doors per hour in the whole book.',
+  center:[27.9600,-80.6200], d:0.013,
+  streets:['PARAGON RD SE','TALBOTT ST SE','TALAVERA ST SE','WACO BLVD SE','SALAZAR ST SE','PALAU ST SE'],
+  park:'Park on Paragon and work the side streets. Sidewalks, young families, cars home after 5.'},
+
+ {id:'r3', area:'hail', name:'Plantation & Eldron', town:'Bayside Lakes, Palm Bay',
+  why:'Three miles east-southeast of Bayside Lakes is where the spotter called 65 mph gusts and inch-and-a-quarter hail. This is that ground.',
+  center:[27.9200,-80.6200], d:0.013,
+  streets:['PLANTATION CIR SE','PERALTA DR SE','ELDRON BLVD SE','DEPEW ST SE','DIANE AVE SE','COGAN DR SE','RILA ST SE'],
+  park:'Eldron Blvd is the spine. Park off it and take the circles one at a time.'},
+
+ {id:'r4', area:'hail', name:'Barefoot Cir & Wren', town:'Barefoot Bay, Micco',
+  why:'The largest manufactured-home community in Florida, mostly retirees, and manufactured roofs bruise at sizes that shrug off a tile roof. People are home at 3pm here.',
+  center:[27.8800,-80.5200], d:0.013,
+  streets:['BAREFOOT CIR','WREN CIR','WATERWAY DR','EGRET CIR','THRUSH CIR'],
+  park:'⚠ Barefoot Bay is a deed-restricted community with its own recreation district. Check the community’s own solicitation rules at the office before you walk it — a complaint here travels to 5,000 neighbours in an afternoon.'},
+
+ {id:'r5', area:'north', name:'Emerson & Holiday Park', town:'Northeast Palm Bay',
+  why:'The inch of hail landed at Malabar Rd and I-95, right here. These are the original General Development lots — the oldest roofs on any route in the book.',
+  center:[28.0100,-80.6400], d:0.013,
+  streets:['EMERSON DR NE','HOLIDAY PARK BLVD NE','FAIRHAVEN ST NE','MEADOWBROOK RD NE','ESTERBROOK AVE NE','BRISBANE ST NE','RILEY AVE NE'],
+  park:'Emerson Dr is busy — park on a side street and walk. Older owners, long ownership, many originals still in the house.'},
+
+ {id:'r6', area:'north', name:'Melbourne Ave & Park', town:'Historic downtown Melbourne',
+  why:'Under the 60–65 mph gust report. 1940s and 1950s houses, old roof decks, and owners who care about the house.',
+  center:[28.0800,-80.6150], d:0.012,
+  streets:['E MELBOURNE AVE','E LINCOLN AVE','PARK AVE','ELIZABETH ST','E FEE AVE','PALMETTO AVE'],
+  park:'Park downtown and walk out. Small lots, close together — the fastest walking in the book, but expect historic-district rules on materials.'},
+
+ {id:'r7', area:'fp', name:'Orange Ave & Woodcrest', town:'West Fort Pierce',
+  why:'The hail photo came off Orange Ave west of the Turnpike. This is the only residential pocket inside that report.',
+  center:[27.4500,-80.4600], d:0.016,
+  streets:['ORANGE AVE','WOODCREST DR','DUSK WAY','SUNRISE DR','PULITZER RD','S BROCKSMITH RD'],
+  park:'Rural. Acre lots, long drives, dogs. Drive it, don’t walk it — park at each house.'}
+];
+</script>
+<script>
+/* ============================================================
+   Local knowledge. Every line has a source. Legends are labelled
+   legends — they are what people tell each other, not history.
+   ============================================================ */
+const CONTENT = {
+ hail:{
+  history:[
+   {t:'Malabar was settled in the late 1800s and incorporated in 1962. It had 634 people in 1970 and 2,949 in 2020 — so most of the people you knock on moved in after the town already existed.', s:'https://en.wikipedia.org/wiki/Malabar,_Florida', sn:'Malabar, Florida'},
+   {t:'In 2019 the Malabar town council declared the town a sandhill crane sanctuary and made the sandhill crane the official town bird. If a pair of five-foot birds walks across a driveway while you are talking, that is a protected resident.', s:'https://en.wikipedia.org/wiki/Malabar,_Florida', sn:'Malabar, Florida'},
+   {t:'Valkaria was supposed to be “Valkyries.” Ernest Svedelius settled north of Grant in 1886 and named it for the Norse figures; the post office misspelled it and the mistake became the name.', s:'https://www.grantvalkaria.org/community/page/history', sn:'Town of Grant-Valkaria'},
+   {t:'Grant got its post office on 4 August 1891 under postmaster Edwin Nelson, its first school in 1893, and its first train that November. Grant Grocery opened in 1894 and is on the National Register of Historic Places.', s:'https://www.grantvalkaria.org/community/page/history', sn:'Town of Grant-Valkaria'},
+   {t:'Palm Bay was Tillman until 1925. John Tillman built a wharf at the mouth of Turkey Creek in the late 1870s; the post office opened in 1885; residents renamed the place Palm Bay in the land boom for a palm-lined cove on the lagoon.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'},
+   {t:'In 1959 the Mackle brothers’ General Development Corporation bought about 41,000 acres west of the Indian River for $1.7 million, platted it as Port Malabar, and sold it by mail — ten dollars down, ten dollars a month, a quarter-acre of Florida. They drained 40,000 acres of swamp and dug 180 miles of canals. GDC filed Chapter 11 in 1990 and three executives were convicted of fraud.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'},
+   {t:'Bayside Lakes, in the late 1990s, was the first big development in Palm Bay that was not GDC.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'},
+   {t:'Barefoot Bay is the largest manufactured-home community in Florida — deed restricted, unincorporated, mostly retired, and it runs its own recreation district and its own water and sewer district.', s:'https://en.wikipedia.org/wiki/Barefoot_Bay,_Florida', sn:'Barefoot Bay, Florida'}
+  ],
+  legends:[
+   {t:'LEGEND — the Ais. The people who lived on Turkey Creek for centuries before Ponce de León were gone by about 1760, taken by disease and raids. Their shell mounds are still along the lagoon, and every few years somebody in Palm Bay digs a pool and finds one.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'},
+   {t:'LEGEND — the ten-dollar lot. Half the retirees in Port Malabar will tell you their parents bought the lot sight unseen from a magazine ad, then flew down to find it under two feet of water. The mail-order sales and the draining are documented; the family version is always better.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'}
+  ],
+  heroes:[
+   {t:'Paul Kroegel — a German-born boat builder from Sebastian who guarded the pelicans on Pelican Island himself, until Theodore Roosevelt made it the first national wildlife refuge in the country on 14 March 1903 and Kroegel became its first warden. Every national wildlife refuge in America started twelve miles from where you are standing.', s:'https://myfloridahistory.org/date-in-history/march-14-1903/pelican-island-national-wildlife-became-first-national-refuge', sn:'Florida Historical Society'},
+   {t:'The Bensen and Christensen families — Danish immigrants who fished and farmed Grant in the 1800s. Atley Bensen built a precut yellow-pine cracker house in 1916; the family gave it to the historical society in 1984 and it has been a museum since 1987. Both names are still common on these mailboxes.', s:'https://www.grantvalkaria.org/community/page/history', sn:'Town of Grant-Valkaria'},
+   {t:'The Grant Seafood Festival volunteers — the longest-running seafood festival on the East Coast, run entirely by volunteers, and the money goes to a scholarship fund. In Grant, “are you working the festival” is a real question.', s:'https://www.grantseafoodfestival.com/information', sn:'Grant Seafood Festival'}
+  ],
+  landmarks:[
+   {t:'Malabar Scrub Sanctuary — county EEL preserve, trails, the scrub jays.', s:'https://www.brevardfl.gov/EELProgram/Sanctuaries/MalabarScrubSanctuary', sn:'Brevard County EEL'},
+   {t:'Turkey Creek Sanctuary, Palm Bay — 113 acres, 1.85 miles of boardwalk, given to Audubon and the city in 1978; the Margaret Hames Nature Center opened in 1992.', s:'https://en.wikipedia.org/wiki/Turkey_Creek_Sanctuary', sn:'Turkey Creek Sanctuary'},
+   {t:'Grant Historical House — the 1916 Bensen house, open as a museum.', s:'https://www.grantvalkaria.org/community/page/history', sn:'Town of Grant-Valkaria'},
+   {t:'The Grant Seafood Festival — every spring, and the whole town works it.', s:'https://www.grantseafoodfestival.com/information', sn:'Grant Seafood Festival'}
+  ],
+  openers:[
+   'Malabar: “Is it true the town made the sandhill crane the official bird? I keep having to stop for them.”',
+   'Palm Bay: “Was this one of the old Port Malabar lots? I keep hearing about ten dollars down, ten dollars a month.”',
+   'Grant: “Do you work the seafood festival, or do you leave town that weekend?”',
+   'Barefoot Bay: “I came down from Vero — I did not know this was the biggest manufactured community in the state until this week.”'
+  ]
+ },
+
+ north:{
+  history:[
+   {t:'Melbourne is named after Melbourne, Australia. Mrs. R. W. Goode suggested it to honour Cornthwaite John Hector, an Englishman who had lived in Australia and became the area’s first postmaster, then opened a general store at Crane Creek.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'The railroad arrived in 1893, and Crane Creek gave farmers a port to ship out of. That is the reason a town is here at all.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'A fire in 1919 destroyed every commercial building on Front Street. The town rebuilt one street over, on New Haven Avenue, during the 1920s boom — which is why downtown faces the way it does.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'Fort Pierce was the biggest city on Florida’s Atlantic coast between Daytona and West Palm until 1970 — the year Melbourne passed it.', s:'https://en.wikipedia.org/wiki/Fort_Pierce,_Florida', sn:'Fort Pierce, Florida'},
+   {t:'Northeast Palm Bay — Emerson, Holiday Park, Meadowbrook — is General Development Corporation ground, platted as Port Malabar from 1959 and sold by mail for ten dollars down.', s:'https://oldpalmbay.com/', sn:'Old Palm Bay'}
+  ],
+  legends:[
+   {t:'LEGEND — the Henegar Center has a balcony ghost the theatre people call Jonathan, who moves things and makes noise during rehearsals.', s:'https://www.hauntedplaces.org/haunted-places-in-brevard-county-florida/', sn:'Haunted Places'},
+   {t:'LEGEND — the 1900 Building on New Haven, built in 1924 as the Melbourne Hotel, is supposed to be haunted by a girl named Amelia who lived there.', s:'https://www.hauntedplaces.org/haunted-places-in-brevard-county-florida/', sn:'Haunted Places'},
+   {t:'LEGEND — the 1894 railroad bridge at the creek downtown carries a set of ghost stories about women killed on the tracks, including three teenagers in the 1920s. Ghost-tour lore, not a record.', s:'https://www.hauntedplaces.org/haunted-places-in-brevard-county-florida/', sn:'Haunted Places'}
+  ],
+  heroes:[
+   {t:'Cornthwaite John Hector — the English postmaster the town is named for, by way of Australia. A man who ran the mail and a store and ended up with a city named after his old address.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'The Rossetter sisters — their house on the river is a museum now, kept as the family left it.', s:'https://www.hauntedplaces.org/haunted-places-in-brevard-county-florida/', sn:'Haunted Places'}
+  ],
+  landmarks:[
+   {t:'The Henegar Center and the Rossetter House Museum, both downtown.', s:'https://www.hauntedplaces.org/haunted-places-in-brevard-county-florida/', sn:'Haunted Places'},
+   {t:'New Haven Avenue — the street the 1919 fire built.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'Crane Creek and the Melbourne Harbor marina, where the produce used to leave from.', s:'https://downtownmelbourne.com/about/history/', sn:'Downtown Melbourne'},
+   {t:'Turkey Creek Sanctuary in Palm Bay — the boardwalk everybody walks.', s:'https://en.wikipedia.org/wiki/Turkey_Creek_Sanctuary', sn:'Turkey Creek Sanctuary'}
+  ],
+  openers:[
+   'Melbourne: “Somebody told me the town is named after Melbourne, Australia because the first postmaster lived there. Is that the story you heard?”',
+   'Melbourne: “I read the whole of Front Street burned in 1919 and they rebuilt on New Haven. Is that why downtown sits the way it does?”',
+   'Palm Bay: “Are these the original Port Malabar houses? I am told the lots sold for ten dollars a month.”'
+  ]
+ },
+
+ fp:{
+  history:[
+   {t:'The fort was built in 1838 in the Second Seminole War and named for Lt. Col. Benjamin Kendrick Pierce — the brother of President Franklin Pierce. It was only there until 1842.', s:'https://en.wikipedia.org/wiki/Fort_Pierce,_Florida', sn:'Fort Pierce, Florida'},
+   {t:'The city incorporated in 1901 and calls itself the Sunrise City. Fishing, citrus, pineapples and cattle built it.', s:'https://en.wikipedia.org/wiki/Fort_Pierce,_Florida', sn:'Fort Pierce, Florida'},
+   {t:'The Navy trained its first frogmen here in World War II. That is why the National Navy UDT-SEAL Museum sits on A1A north of town — Congress made it a national museum on 7 February 2008.', s:'https://en.wikipedia.org/wiki/National_Navy_UDT-SEAL_Museum', sn:'UDT-SEAL Museum'},
+   {t:'Twenty-six Black landscape painters — the Florida Highwaymen — worked out of Fort Pierce from the mid-1950s. Galleries would not show them, so they sold from car trunks along US-1 and A1A. About 200,000 paintings. All 26 went into the Florida Artists Hall of Fame in 2004.', s:'https://en.wikipedia.org/wiki/Florida_Highwaymen', sn:'Florida Highwaymen'},
+   {t:'Zora Neale Hurston lived in the Lincoln Park neighbourhood and is buried in Fort Pierce.', s:'https://en.wikipedia.org/wiki/Fort_Pierce,_Florida', sn:'Fort Pierce, Florida'}
+  ],
+  legends:[
+   {t:'LEGEND — the Boston House on Indian River Drive is said to be haunted by a red-haired maid asking for help finding her son.', s:'https://usghostadventures.com/fort-pierce-ghost-tour/', sn:'Fort Pierce ghost tour'},
+   {t:'LEGEND — the Sunrise Theatre, built in 1923, is supposed to have a phantom piano player, with more activity reported after the 2006 renovation.', s:'https://usghostadventures.com/fort-pierce-ghost-tour/', sn:'Fort Pierce ghost tour'},
+   {t:'LEGEND — the P.P. Cobb building downtown, where a bullet meant for Cobb hit the man next to him. The ghost is said to call the names of the living.', s:'https://usghostadventures.com/fort-pierce-ghost-tour/', sn:'Fort Pierce ghost tour'}
+  ],
+  heroes:[
+   {t:'Alfred Hair — the young painter who turned a way of painting fast into a living for 26 artists, and A.E. “Beanie” Backus, the white landscape painter who taught him from 1955 when that was not a normal thing to do.', s:'https://en.wikipedia.org/wiki/Florida_Highwaymen', sn:'Florida Highwaymen'},
+   {t:'Mary Ann Carroll — the only woman among the Highwaymen, raising children and selling paintings out of a car.', s:'https://en.wikipedia.org/wiki/Florida_Highwaymen', sn:'Florida Highwaymen'},
+   {t:'Zanobia Jefferson — the Lincoln Park Academy art teacher who taught the first of them. A school teacher started the whole thing.', s:'https://en.wikipedia.org/wiki/Florida_Highwaymen', sn:'Florida Highwaymen'},
+   {t:'The frogmen — the men who trained in the surf here and became the Navy SEALs. Plenty of veterans in this county know exactly where that beach is.', s:'https://en.wikipedia.org/wiki/National_Navy_UDT-SEAL_Museum', sn:'UDT-SEAL Museum'}
+  ],
+  landmarks:[
+   {t:'National Navy UDT-SEAL Museum, 3300 N A1A.', s:'https://en.wikipedia.org/wiki/National_Navy_UDT-SEAL_Museum', sn:'UDT-SEAL Museum'},
+   {t:'The A.E. Backus Museum & Gallery and the Highwaymen Heritage Trail downtown.', s:'https://www.cityoffortpierce.com/534/About-the-Highwaymen-Heritage-Trail', sn:'City of Fort Pierce'},
+   {t:'Sunrise Theatre, 1923.', s:'https://usghostadventures.com/fort-pierce-ghost-tour/', sn:'Fort Pierce ghost tour'},
+   {t:'The Saturday farmers market on the waterfront downtown.', s:'https://visitstlucie.com/fort-pierce/', sn:'Visit St. Lucie'}
+  ],
+  openers:[
+   '“Is this still grove country out here, or did the groves go?”',
+   '“I read the first Navy frogmen trained right off the beach here. Did you grow up with that, or is that news to everybody but the museum?”',
+   '“My wife likes the Highwaymen paintings. Do people out here still have them on the wall?”'
+  ]
+ }
+};
+
+const SCRIPT_RULES = {
+ open:[
+  'Lead with a real neighbour’s house number — one you actually worked. “I just came off the roof over at 1261.” Then stop talking.',
+  'Three knocks. Two steps back off the stoop, quarter turn to the street, hands empty.',
+  'The ask is one question they can answer in one word: “Did you get hit here on the fifteenth?”',
+  'Then: “Mind if I look at it from the ground and tell you whether it is worth calling your carrier?”'
+ ],
+ never:[
+  '“You have damage.” You have not been on the roof.',
+  'Any price, any timeline, any “insurance will cover it.” The carrier decides.',
+  '“It’s free.” Paying or absorbing somebody’s deductible is against F.S. 489.147.',
+  'Reading their policy to them. That is adjusting a claim and it needs a public adjuster licence.',
+  'Signing a roof scope. F.S. 489.113(3) — a Certified Building Contractor subcontracts roofing, and there is no approved roofer on the bench yet.'
+ ],
+ spanish:[
+  '“Hola — soy ___ de Covenant Builders, de Vero. Andamos por esta calle por el granizo del 15 de marzo. ¿Les cayó granizo aquí ese día?”',
+  '“¿Me deja verlo desde abajo y le digo si vale la pena llamar a su aseguranza?”'
+ ],
+ after:[
+  'Nobody home: leave the card, write the house number on the back, mark the door <b>Not home</b> — not knocked.',
+  'Somebody answered: mark it <b>Knocked</b> the same day, on this page.',
+  'A name and a number: that door stops being a door and becomes a CRM row inside two days.'
+ ]
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ============================================================
+   App
+   ============================================================ */
+var FDOR = 'https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query';
+var NAIP = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
+var ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+var OSM  = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+var S = { route:null, doors:[], map:null, layer:null, gps:null, watch:null };
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function daysLeft(iso){
+  var loss = new Date(iso+'T12:00:00');
+  var end = new Date(loss.getTime()); end.setFullYear(end.getFullYear()+1);
+  return Math.round((end - TODAY)/86400000);
+}
+function era(y){
+  if(!y || y<1900) return 3;
+  if(y>=2015) return 3;
+  if(y>=2000) return 2;
+  if(y>=1980) return 1;
+  return 0;
+}
+var ERA_COLOR = ['#c1524a','#d4a24c','#c4a574','#9aa3b8'];
+var ERA_NAME  = ['Before 1980','1980–1999','2000–2014','2015 or newer'];
+
+/* ---------- home ---------- */
+function renderHome(){
+  var h = '';
+  AREAS.forEach(function(a){
+    var dl = daysLeft(a.loss);
+    var rs = ROUTES.filter(function(r){ return r.area===a.id; });
+    h += '<div class="card"><h2>'+esc(a.name)+'</h2>'+
+      '<div class="meta">'+esc(a.when)+' · '+esc(a.head)+'</div>'+
+      '<div class="chips"><span class="chip '+(dl<90?'warn':'hot')+'">'+dl+' days left to file</span>'+
+      '<span class="chip">'+rs.length+' route'+(rs.length>1?'s':'')+'</span>'+
+      '<span class="chip">'+esc(a.zips.split('·').length)+' ZIPs on the board</span></div>'+
+      '<p>'+esc(a.blurb)+'</p>'+
+      '<p class="src">'+esc(a.zips)+'<br>'+esc(a.score)+'</p>';
+    rs.forEach(function(r){
+      h += '<button class="routebtn" onclick="openRoute(\''+r.id+'\')">'+
+           '<span><b>'+esc(r.name)+'</b><small>'+esc(r.town)+' · '+r.streets.length+' streets</small></span>'+
+           '<span class="go">&rsaquo;</span></button>';
+    });
+    h += '</div>';
+  });
+  document.getElementById('areas').innerHTML = h;
+}
+
+/* ---------- parcels ---------- */
+function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
+
+function fetchParcels(r){
+  var b = [r.center[1]-r.d, r.center[0]-r.d, r.center[1]+r.d, r.center[0]+r.d].join(',');
+  var url = FDOR + '?' + qs({
+    f:'json', where:"DOR_UC IN ('001','002')", geometry:b, geometryType:'esriGeometryEnvelope',
+    inSR:'4326', spatialRel:'esriSpatialRelIntersects',
+    outFields:'PARCEL_ID,PHY_ADDR1,PHY_CITY,PHY_ZIPCD,ACT_YR_BLT,EFF_YR_BLT,JV,TOT_LVG_AR,OWN_NAME,DOR_UC,NO_RES_UNT',
+    returnCentroid:'true', returnGeometry:'false', outSR:'4326', resultRecordCount:'2000'
+  });
+  return fetch(url).then(function(x){ return x.json(); }).then(function(j){
+    if(j.error) throw new Error(j.error.message||'record service error');
+    return (j.features||[]).map(function(f){
+      var a=f.attributes, c=f.centroid||{};
+      return { id:a.PARCEL_ID, ad:(a.PHY_ADDR1||'').trim(), city:(a.PHY_CITY||'').trim(),
+               zip:(a.PHY_ZIPCD||''), yr:a.ACT_YR_BLT||a.EFF_YR_BLT||0, jv:a.JV||0,
+               sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), uc:a.DOR_UC,
+               lat:c.y, lon:c.x };
+    }).filter(function(p){ return p.lat && p.ad; });
+  });
+}
+
+function cacheGet(id){
+  try{ var v = JSON.parse(localStorage.getItem('sb:p:'+id)||'null');
+       if(v && (Date.now()-v.t) < 30*86400000) return v.rows; }catch(e){}
+  return null;
+}
+function cacheSet(id, rows){ try{ localStorage.setItem('sb:p:'+id, JSON.stringify({t:Date.now(), rows:rows})); }catch(e){} }
+
+/* order the walk: streets in the order the route lists them, house numbers
+   up one street and back down the next, so you are never crossing twice. */
+function orderDoors(rows, r){
+  var out = [], flip = false;
+  r.streets.forEach(function(st){
+    var on = rows.filter(function(p){
+      var a = p.ad.toUpperCase(), i = a.indexOf(' ');
+      return i > -1 && a.slice(i+1) === st;
+    });
+    on.sort(function(a,b){ return (parseInt(a.ad,10)||0) - (parseInt(b.ad,10)||0); });
+    if(flip) on.reverse();
+    flip = !flip;
+    out = out.concat(on);
+  });
+  return out;
+}
+
+/* ---------- marks ---------- */
+function markOf(id){ try{ return localStorage.getItem('sb:m:'+S.route.id+':'+id)||''; }catch(e){ return ''; } }
+function setMark(id, v){
+  try{
+    var k='sb:m:'+S.route.id+':'+id;
+    if(markOf(id)===v) localStorage.removeItem(k); else localStorage.setItem(k, v);
+  }catch(e){}
+  renderDoors(); paintMap();
+}
+
+/* ---------- route ---------- */
+function openRoute(id){
+  S.route = ROUTES.filter(function(r){ return r.id===id; })[0];
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
+  document.getElementById('home').style.display='none';
+  document.getElementById('route').style.display='block';
+  document.getElementById('rname').textContent = S.route.name;
+  document.getElementById('rsub').textContent = S.route.town + ' · ' + a.when + ' · ' + daysLeft(a.loss) + ' days to file';
+  window.scrollTo(0,0);
+  tab('doors');
+  document.getElementById('p-doors').innerHTML = '<div class="loading">Pulling the county records for these streets…</div>';
+  renderArea(); renderSay();
+  buildMap();
+  var cached = cacheGet(S.route.id);
+  if(cached){ S.doors = orderDoors(cached, S.route); afterLoad(); }
+  load();
+}
+function load(){
+  fetchParcels(S.route).then(function(rows){
+    cacheSet(S.route.id, rows);
+    S.doors = orderDoors(rows, S.route);
+    afterLoad();
+  }).catch(function(e){
+    if(!S.doors.length){
+      document.getElementById('p-doors').innerHTML =
+       '<div class="warnbox"><h3>The record service did not answer</h3><p>'+esc(e.message)+
+       '</p><p>You need a signal for the first load on a route. After that it is saved on this phone.</p>'+
+       '<button class="btn" onclick="load()">Try again</button></div>';
+    }
+  });
+}
+function reload(){ try{ localStorage.removeItem('sb:p:'+S.route.id); }catch(e){} load(); }
+function afterLoad(){ renderDoors(); renderSheet(); paintMap(); }
+function goHome(){
+  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; }
+  document.getElementById('route').style.display='none';
+  document.getElementById('home').style.display='block';
+  window.scrollTo(0,0);
+}
+function tab(p){
+  ['doors','area','say'].forEach(function(x){
+    document.getElementById('p-'+x).className = 'pane' + (x===p?' on':'');
+  });
+  var ts = document.querySelectorAll('.tab');
+  for(var i=0;i<ts.length;i++){ ts[i].className = 'tab' + (ts[i].getAttribute('data-p')===p?' on':''); }
+  if(p==='doors' && S.map) setTimeout(function(){ S.map.invalidateSize(); }, 50);
+}
+</script>
+<script>
+/* ---------- the map ---------- */
+function naipLayer(){
+  var L2 = L.TileLayer.extend({
+    getTileUrl: function(coords){
+      var size = this.getTileSize(),
+          nw = coords.scaleBy(size),
+          se = nw.add(size),
+          p1 = this._map.unproject(nw, coords.z),
+          p2 = this._map.unproject(se, coords.z),
+          a = L.Projection.SphericalMercator.project(p1),
+          b = L.Projection.SphericalMercator.project(p2);
+      var R = 6378137;
+      var bbox = [a.x*R, b.y*R, b.x*R, a.y*R].join(',');
+      return NAIP + '?' + qs({ bbox:bbox, bboxSR:'3857', imageSR:'3857',
+        size:'256,256', format:'jpgpng', f:'image' });
+    }
+  });
+  return new L2('', { maxZoom:20, attribution:'Aerial photo: USDA NAIP via USGS — public domain' });
+}
+
+function buildMap(){
+  if(S.map){ S.map.remove(); S.map = null; }
+  var r = S.route;
+  S.map = L.map('map', { zoomControl:true, tap:true }).setView(r.center, 16);
+  var naip = naipLayer().addTo(S.map);
+  var esri = L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar Geographics' });
+  var osm  = L.tileLayer(OSM,  { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' });
+  L.control.layers({ 'Aerial (USGS NAIP)':naip, 'Aerial (Esri)':esri, 'Street names':osm }, null, {collapsed:true}).addTo(S.map);
+  S.layer = L.layerGroup().addTo(S.map);
+  /* the storm reports themselves */
+  var a = AREAS.filter(function(x){ return x.id===r.area; })[0];
+  a.reports.forEach(function(rep){
+    L.circleMarker([rep.lat, rep.lon], { radius:11, color:'#d4a24c', weight:2, fillColor:'#d4a24c', fillOpacity:.15 })
+     .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)+
+                '<br><span style="color:#9aa3b8">Reported to the National Weather Service. The dot is where the report was placed, not the only place it fell.</span>')
+     .addTo(S.map);
+  });
+}
+
+function paintMap(){
+  if(!S.map || !S.layer) return;
+  S.layer.clearLayers();
+  var pts = [];
+  S.doors.forEach(function(p, i){
+    if(!p.lat) return;
+    pts.push([p.lat, p.lon]);
+    var m = markOf(p.id), e = era(p.yr);
+    var mk = L.circleMarker([p.lat, p.lon], {
+      radius: m ? 8 : 6,
+      color: m==='k' ? '#6a9a6f' : (m ? '#e9e7e2' : '#12182B'),
+      weight: m ? 2 : 1, opacity:1,
+      fillColor: ERA_COLOR[e], fillOpacity: m==='n' ? .35 : .95
+    });
+    mk.bindPopup(function(){
+      return '<b>'+esc(p.ad)+'</b><br>'+
+        '<span style="color:#c4a574">Door '+(i+1)+' of '+S.doors.length+'</span><br>'+
+        'Built '+(p.yr||'—')+' · '+(p.sf?p.sf+' sq ft':'')+'<br>'+
+        'Owner of record: '+esc(p.own||'—')+'<br>'+
+        '<span style="color:#9aa3b8;font-size:11.5px">Florida Dept. of Revenue 2025 roll. House age, not roof age.</span><br>'+
+        '<button class="btn" style="margin-top:6px" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button> '+
+        '<button class="btn" style="margin-top:6px" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>';
+    });
+    S.layer.addLayer(mk);
+  });
+  if(pts.length){
+    S.layer.addLayer(L.polyline(pts, { color:'#c4a574', weight:3, opacity:.75 }));
+    try{ S.map.fitBounds(L.latLngBounds(pts).pad(0.12)); }catch(e){}
+  }
+}
+
+function locateMe(){
+  if(!navigator.geolocation){ alert('This phone will not give a location to the page.'); return; }
+  var btn = document.getElementById('gpsbtn');
+  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; btn.textContent='Where am I';
+               if(S.gps){ S.map.removeLayer(S.gps); S.gps=null; } return; }
+  btn.textContent='Finding you…';
+  S.watch = navigator.geolocation.watchPosition(function(pos){
+    var ll = [pos.coords.latitude, pos.coords.longitude];
+    if(!S.gps){
+      S.gps = L.layerGroup().addTo(S.map);
+    }
+    S.gps.clearLayers();
+    S.gps.addLayer(L.circleMarker(ll, { radius:7, color:'#fff', weight:2, fillColor:'#4a90d9', fillOpacity:1 }));
+    S.gps.addLayer(L.circle(ll, { radius: pos.coords.accuracy||30, color:'#4a90d9', weight:1, fillOpacity:.08 }));
+    btn.textContent = nearestDoor(ll);
+  }, function(err){ btn.textContent = 'No location'; }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
+}
+function nearestDoor(ll){
+  var best=null, bd=1e9;
+  S.doors.forEach(function(p,i){
+    if(!p.lat) return;
+    var dx=(p.lat-ll[0])*111320, dy=(p.lon-ll[1])*98000, d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bd){ bd=d; best=i; }
+  });
+  if(best===null) return 'Located';
+  return 'Nearest: door '+(best+1)+' ('+Math.round(bd*3.28)+' ft)';
+}
+
+function openDrive(){
+  var pts = S.doors.filter(function(p){ return p.lat; });
+  if(!pts.length){ alert('No doors loaded yet.'); return; }
+  var picks = [];
+  var step = Math.max(1, Math.floor(pts.length/8));
+  for(var i=0; i<pts.length && picks.length<8; i+=step) picks.push(pts[i]);
+  var dest = pts[pts.length-1];
+  var url = 'https://www.google.com/maps/dir/?' + qs({
+    api:'1', destination: dest.lat+','+dest.lon, travelmode:'driving',
+    waypoints: picks.map(function(p){ return p.lat+','+p.lon; }).join('|')
+  });
+  window.open(url, '_blank', 'noopener');
+}
+</script>
+<script>
+/* ---------- doors ---------- */
+function renderDoors(){
+  var r = S.route, d = S.doors;
+  if(!d.length){ return; }
+  var yrs = d.map(function(p){ return p.yr; }).filter(function(y){ return y>1900; }).sort();
+  var med = yrs.length ? yrs[Math.floor(yrs.length/2)] : 0;
+  var jvs = d.map(function(p){ return p.jv; }).filter(function(v){ return v>0; }).sort(function(a,b){return a-b;});
+  var mjv = jvs.length ? jvs[Math.floor(jvs.length/2)] : 0;
+  var k=0,n=0;
+  d.forEach(function(p){ var m=markOf(p.id); if(m==='k')k++; if(m==='n')n++; });
+
+  var h = '<div class="okbox"><b>Why this street.</b> '+esc(r.why)+'<br><br><b>Parking.</b> '+r.park+'</div>';
+  h += '<div class="chips">'+
+       '<span class="chip">'+d.length+' doors</span>'+
+       '<span class="chip">median built '+(med||'—')+'</span>'+
+       '<span class="chip">typical county value $'+(mjv?mjv.toLocaleString():'—')+'</span>'+
+       '<span class="chip hot">'+k+' knocked</span>'+
+       '<span class="chip">'+n+' not home</span></div>';
+  h += '<div class="legend">';
+  ERA_NAME.forEach(function(nm,i){ h += '<span><i class="dot" style="background:'+ERA_COLOR[i]+'"></i>'+nm+'</span>'; });
+  h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll — public record, and the same book the property appraiser publishes. It is the age of the <b>house</b>. The roof can be any age. Use it to pick a street, never to tell a homeowner what they have.</p>';
+
+  var last='';
+  d.forEach(function(p,i){
+    var stName = p.ad.slice(p.ad.indexOf(' ')+1);
+    if(stName !== last){ h += '<h3>'+esc(stName)+'</h3>'; last = stName; }
+    var m = markOf(p.id), e = era(p.yr);
+    h += '<div class="door">'+
+      '<span class="n">'+(i+1)+'</span>'+
+      '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'—')+(p.sf?' · '+p.sf+' sq ft':'')+'</small></span>'+
+      '<span class="yr y'+e+'">'+(p.yr||'—')+'</span>'+
+      '<span class="mk">'+
+        '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
+        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
+        '<button class="'+(m==='l'?'on':'')+'" title="Lead — name and number" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
+      '</span></div>';
+  });
+  h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = you got a name and a number; that one becomes a CRM row inside two days.</p>';
+  h += '<button class="btn" onclick="copyLeads()">Copy the leads and the knocks</button>';
+  document.getElementById('p-doors').innerHTML = h;
+}
+
+function copyLeads(){
+  var out = [S.route.name+' — '+S.route.town+' — '+new Date().toDateString(), ''];
+  S.doors.forEach(function(p,i){
+    var m = markOf(p.id);
+    if(!m) return;
+    out.push((m==='k'?'KNOCKED':(m==='l'?'LEAD':'NOT HOME'))+'\t'+p.ad+'\t'+(p.own||'')+'\tbuilt '+(p.yr||''));
+  });
+  if(out.length===2) out.push('Nothing marked yet.');
+  var t = out.join('\n');
+  if(navigator.clipboard){ navigator.clipboard.writeText(t); alert('Copied. Paste it into the CRM or an email.'); }
+  else { prompt('Copy this:', t); }
+}
+
+/* ---------- the area ---------- */
+function block(title, rows){
+  if(!rows || !rows.length) return '';
+  var h = '<h3>'+title+'</h3>';
+  rows.forEach(function(x){
+    h += '<p>'+x.t+' <span class="src">— <a href="'+x.s+'" target="_blank" rel="noopener">'+esc(x.sn)+'</a></span></p>';
+  });
+  return h;
+}
+function renderArea(){
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
+  var c = CONTENT[a.id];
+  var h = '<div class="card"><h2>'+esc(a.name)+'</h2><div class="meta">'+esc(a.when)+'</div><p>'+esc(a.blurb)+'</p>';
+  h += '<h3>What the weather service was told</h3>';
+  a.reports.forEach(function(r){
+    h += '<p><b>'+esc(r.mag)+'</b> · '+esc(r.t)+' — '+esc(r.txt)+'</p>';
+  });
+  h += '<p class="src">Source: NWS Local Storm Reports via the Iowa Environmental Mesonet archive, read 11 September 2026.</p></div>';
+  h += '<div class="card">'+block('The history', c.history)+block('The legends', c.legends)+
+       block('The local heroes', c.heroes)+block('What everybody knows', c.landmarks)+'</div>';
+  document.getElementById('p-area').innerHTML = h;
+}
+
+/* ---------- what to say ---------- */
+function renderSay(){
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
+  var c = CONTENT[a.id];
+  var h = '<div class="card"><h3>The knock</h3><ul>';
+  SCRIPT_RULES.open.forEach(function(x){ h += '<li>'+x+'</li>'; });
+  h += '</ul><h3>Openers that belong to this town</h3><ul>';
+  c.openers.forEach(function(x){ h += '<li>'+esc(x)+'</li>'; });
+  h += '</ul><p class="note">Use one, then shut up. The point of a local line is that it is true and it is theirs — not that it is clever.</p></div>';
+  h += '<div class="warnbox"><h3>Never, on any door</h3><ul>';
+  SCRIPT_RULES.never.forEach(function(x){ h += '<li>'+x+'</li>'; });
+  h += '</ul></div>';
+  h += '<div class="card"><h3>En español</h3><ul>';
+  SCRIPT_RULES.spanish.forEach(function(x){ h += '<li>'+esc(x)+'</li>'; });
+  h += '</ul><h3>When you walk away</h3><ul>';
+  SCRIPT_RULES.after.forEach(function(x){ h += '<li>'+x+'</li>'; });
+  h += '</ul></div>';
+  h += '<div class="warnbox"><h3>The permit</h3><p>Knocking a cold door to sell work is a “home solicitation sale” under Florida law. The permit comes from the <b>Clerk of Court in that county</b> — Brevard for every route but Fort Pierce, St. Lucie for that one — and a contractor is not on the exemption list. An invited visit is.</p>'+
+       '<p class="src"><a href="http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.022.html" target="_blank" rel="noopener">F.S. 501.022</a> · <a href="https://www.brevardclerk.us/home-solicitation-permit" target="_blank" rel="noopener">Brevard Clerk of Court</a></p></div>';
+  document.getElementById('p-say').innerHTML = h;
+}
+
+/* ---------- printable walk sheet ---------- */
+function renderSheet(){
+  var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0];
+  var h = '<h2>'+esc(r.name)+' — '+esc(r.town)+'</h2>'+
+    '<p>'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(a.loss)+' days left to file · Covenant Builders · CBC1253676 · (772) 473-7115</p>'+
+    '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knocked</th><th>Not home</th><th>Name / number / notes</th></tr>';
+  S.doors.forEach(function(p,i){
+    h += '<tr><td>'+(i+1)+'</td><td>'+esc(p.ad)+'</td><td>'+esc(p.own||'')+'</td><td>'+(p.yr||'')+'</td><td></td><td></td><td></td></tr>';
+  });
+  h += '</table><p style="font-size:10px">Owner and year: Florida Dept. of Revenue 2025 tax roll. House age, not roof age.</p>';
+  document.getElementById('sheet').innerHTML = h;
+}
+
+renderHome();
+</script>
+</body>
+</html>
