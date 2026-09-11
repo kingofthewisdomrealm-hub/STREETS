@@ -481,17 +481,33 @@ function cacheSet(id, rows){ try{ localStorage.setItem('sb:p:'+id, JSON.stringif
 /* order the walk: streets in the order the route lists them, house numbers
    up one street and back down the next, so you are never crossing twice. */
 function orderDoors(rows, r){
-  var out = [], flip = false;
+  /* group the doors into streets, then chain the streets nearest-end to
+     nearest-end so the walk never crosses itself. House numbers run up one
+     street and back down the next. */
+  var groups = [];
   r.streets.forEach(function(st){
     var on = rows.filter(function(p){
       var a = p.ad.toUpperCase(), i = a.indexOf(' ');
       return i > -1 && a.slice(i+1) === st;
     });
+    if(!on.length) return;
     on.sort(function(a,b){ return (parseInt(a.ad,10)||0) - (parseInt(b.ad,10)||0); });
-    if(flip) on.reverse();
-    flip = !flip;
-    out = out.concat(on);
+    groups.push(on);
   });
+  if(!groups.length) return [];
+  var far = function(a,b){ var dx=(a.lat-b.lat)*111, dy=(a.lon-b.lon)*98; return dx*dx+dy*dy; };
+  var out = groups.shift(), left = groups;
+  while(left.length){
+    var end = out[out.length-1], bi = 0, bd = Infinity, flip = false;
+    left.forEach(function(g, i){
+      var d1 = far(end, g[0]), d2 = far(end, g[g.length-1]);
+      var d = Math.min(d1, d2);
+      if(d < bd){ bd = d; bi = i; flip = d2 < d1; }
+    });
+    var g = left.splice(bi,1)[0];
+    if(flip) g.reverse();
+    out = out.concat(g);
+  }
   return out;
 }
 
@@ -565,8 +581,8 @@ function naipLayer(){
           p2 = this._map.unproject(se, coords.z),
           a = L.Projection.SphericalMercator.project(p1),
           b = L.Projection.SphericalMercator.project(p2);
-      var R = 6378137;
-      var bbox = [a.x*R, b.y*R, b.x*R, a.y*R].join(',');
+      /* SphericalMercator.project already returns metres — do not scale again */
+      var bbox = [a.x, b.y, b.x, a.y].join(',');
       return NAIP + '?' + qs({ bbox:bbox, bboxSR:'3857', imageSR:'3857',
         size:'256,256', format:'jpgpng', f:'image' });
     }
