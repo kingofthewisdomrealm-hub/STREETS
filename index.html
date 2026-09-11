@@ -636,7 +636,9 @@ function paintMap(){
   });
   if(pts.length){
     S.layer.addLayer(L.polyline(pts, { color:'#c4a574', weight:3, opacity:.75 }));
-    try{ S.map.fitBounds(L.latLngBounds(pts).pad(0.12)); }catch(e){}
+    setTimeout(function(){
+      try{ S.map.invalidateSize(); S.map.fitBounds(L.latLngBounds(pts).pad(0.10)); }catch(e){}
+    }, 150);
   }
 }
 
