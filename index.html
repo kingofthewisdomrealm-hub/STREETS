@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#12182B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>The Street Book — Covenant Builders</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.6.0/maplibre-gl.min.css">
 <style>
 :root{
   --navy:#12182B; --sand:#c4a574; --word:#e9e7e2; --gold:#d4a24c;
@@ -22,10 +22,14 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--wash);
 button{font-family:inherit}
 
 /* ---------- the map is the app ---------- */
-#map{position:fixed;inset:0;z-index:0;background:#dfe3e8}
-.leaflet-container{font-family:inherit;background:#dfe3e8}
-.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.72)}
-.leaflet-control-zoom{display:none}
+#map{position:fixed;inset:0;z-index:0;background:#e8ebef}
+.maplibregl-ctrl-attrib{font-size:9px}
+.maplibregl-ctrl-bottom-right{margin-bottom:2px}
+.maplibregl-ctrl-geolocate{display:none !important}
+.maplibregl-popup-content{border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.45;
+  box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:260px}
+.maplibregl-popup-content b{font-size:15px}
+.maplibregl-user-location-dot, .maplibregl-user-location-accuracy-circle{z-index:5}
 
 /* ---------- floating top bar ---------- */
 #topbar{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;z-index:1000;
@@ -129,9 +133,6 @@ h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--
   font-size:11.5px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .yardpin{background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:999px;padding:4px 9px;
   font-size:11px;font-weight:700;white-space:nowrap}
-.leaflet-popup-content-wrapper{border-radius:12px}
-.leaflet-popup-content{margin:12px 14px;font-size:13.5px;line-height:1.45}
-.leaflet-popup-content b{font-size:15px}
 
 /* ---------- print ---------- */
 #print{display:none}
@@ -419,19 +420,19 @@ const SCRIPT_RULES = {
  ]
 };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.6.0/maplibre-gl.js"></script>
 <script>
 /* ============================================================
    Sources. All open access — no key, no account, no bill.
    ============================================================ */
 var FDOR    = 'https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query';
 var NAIP    = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
-var CARTO   = 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+var STREETS = 'https://tiles.openfreemap.org/styles/liberty';   /* OpenStreetMap data, free, no key */
 var ESRI    = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 var ESRILAB = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
 var S = { mode:'overview', area:'all', base:'map', route:null, doors:[], blocks:[], bi:0,
-          map:null, over:null, layer:null, gps:null, watch:null, me:null, centred:false, tab:'doors' };
+          map:null, geo:null, styled:false, me:null, tab:'doors', snap:'half' };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
@@ -603,7 +604,7 @@ function focusRoute(id){
   document.getElementById('backbtn').style.display = 'block';
   document.getElementById('tb-title').innerHTML =
     '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(a.loss)+' days to file</small>';
-  S.map.flyTo(S.route.center, 15, { duration:.6 });
+  if(S.map) S.map.flyTo({ center:[S.route.center[1], S.route.center[0]], zoom:14.5, duration:700 });
   snap('half');
   var cached = cacheGet(S.route.id);
   if(cached){ S.doors = orderDoors(cached, S.route); afterLoad(); }
@@ -689,40 +690,34 @@ function copyLeads(){
 </script>
 <script>
 /* ============================================================
-   The map. It is the app, not a picture inside the app.
+   The map — MapLibre GL over OpenStreetMap vector tiles.
+   Open data, open engine, no key and no bill.
    ============================================================ */
-var BASES = {};
-function naipLayer(){
-  var L2 = L.TileLayer.extend({
-    getTileUrl: function(coords){
-      var size = this.getTileSize(),
-          nw = coords.scaleBy(size), se = nw.add(size),
-          a = L.Projection.SphericalMercator.project(this._map.unproject(nw, coords.z)),
-          b = L.Projection.SphericalMercator.project(this._map.unproject(se, coords.z));
-      return NAIP + '?' + qs({ bbox:[a.x,b.y,b.x,a.y].join(','), bboxSR:'3857', imageSR:'3857',
-        size:'256,256', format:'jpgpng', f:'image' });
-    }
-  });
-  return new L2('', { maxZoom:20, maxNativeZoom:20, attribution:'Aerial: USDA NAIP via USGS — public domain' });
+var MARKERS = [];
+function rasterStyle(tiles, attrib, labels){
+  var st = { version:8, glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+    sources:{ img:{ type:'raster', tiles:[tiles], tileSize:256, maxzoom:20, attribution:attrib } },
+    layers:[{ id:'sat', type:'raster', source:'img' }] };
+  if(labels){
+    st.sources.lab = { type:'raster', tiles:[labels], tileSize:256, maxzoom:20 };
+    st.layers.push({ id:'labels', type:'raster', source:'lab' });
+  }
+  return st;
 }
-function buildBases(){
-  BASES.map = L.tileLayer(CARTO, { maxZoom:20, attribution:'&copy; OpenStreetMap, &copy; CARTO' });
-  BASES.sat = L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar' });
-  BASES.naip = naipLayer();
-  BASES.hyb = L.layerGroup([
-    L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar' }),
-    L.tileLayer(ESRILAB, { maxZoom:20, opacity:0.95 })
-  ]);
+function styleFor(k){
+  if(k === 'sat')  return rasterStyle(ESRI, 'Imagery: Esri, Maxar, Earthstar');
+  if(k === 'hyb')  return rasterStyle(ESRI, 'Imagery: Esri, Maxar, Earthstar', ESRILAB);
+  if(k === 'naip') return rasterStyle(NAIP + '?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image',
+                                      'Aerial: USDA NAIP via USGS — public domain');
+  return STREETS;
 }
 function setBase(k){
-  if(S.base && BASES[S.base]) S.map.removeLayer(BASES[S.base]);
   S.base = k;
-  BASES[k].addTo(S.map);
-  if(BASES[k].bringToBack) BASES[k].bringToBack();
   try{ localStorage.setItem('sb:base', k); }catch(e){}
   var bs = document.querySelectorAll('#layers button');
   for(var i=0;i<bs.length;i++) bs[i].className = bs[i].getAttribute('data-b')===k ? 'on' : '';
   document.getElementById('layers').style.display = 'none';
+  if(S.map){ S.styled = false; S.map.setStyle(styleFor(k)); }
 }
 function toggleLayers(){
   var el = document.getElementById('layers');
@@ -730,115 +725,161 @@ function toggleLayers(){
 }
 
 function buildMap(){
-  S.map = L.map('map', { zoomControl:false, attributionControl:true, tap:true, zoomSnap:0.5 })
-           .setView([27.95,-80.60], 10);
-  buildBases();
   var want = 'map';
   try{ want = localStorage.getItem('sb:base') || 'map'; }catch(e){}
-  setBase(BASES[want] ? want : 'map');
-  L.control.scale({ imperial:true, metric:false, position:'bottomleft' }).addTo(S.map);
-  S.over = L.layerGroup().addTo(S.map);   /* everything in overview */
-  S.layer = L.layerGroup().addTo(S.map);  /* the open route */
-  S.gps = L.layerGroup().addTo(S.map);
+  S.base = want;
+  S.map = new maplibregl.Map({
+    container:'map', style:styleFor(want), center:[-80.60, 27.95], zoom:8.4,
+    attributionControl:{ compact:true }, maxPitch:60
+  });
+  S.map.addControl(new maplibregl.NavigationControl({ showZoom:false, visualizePitch:true }), 'bottom-right');
+  S.geo = new maplibregl.GeolocateControl({
+    positionOptions:{ enableHighAccuracy:true }, trackUserLocation:true, showUserHeading:true, showAccuracyCircle:true
+  });
+  S.map.addControl(S.geo);
+  S.geo.on('geolocate', function(pos){
+    S.me = [pos.coords.latitude, pos.coords.longitude];
+    document.getElementById('gpsfab').className = 'fab on';
+    if(S.mode === 'route') renderRouteHead(); else renderOverview();
+  });
+  S.map.on('style.load', function(){ S.styled = true; addOverlays(); paintMap(); });
+  S.map.on('click', 'doors', function(e){ doorPopup(e.features[0]); });
+  S.map.on('mouseenter', 'doors', function(){ S.map.getCanvas().style.cursor = 'pointer'; });
+  S.map.on('mouseleave', 'doors', function(){ S.map.getCanvas().style.cursor = ''; });
+  var bs = document.querySelectorAll('#layers button');
+  for(var i=0;i<bs.length;i++) bs[i].className = bs[i].getAttribute('data-b')===want ? 'on' : '';
+}
+function locateMe(){ if(S.geo) S.geo.trigger(); }
+
+/* empty sources + layers, rebuilt after every style change */
+function addOverlays(){
+  var m = S.map;
+  if(!m.getSource('line')){
+    m.addSource('line', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    m.addLayer({ id:'line-case', type:'line', source:'line',
+      paint:{ 'line-color':'#12182B', 'line-width':6, 'line-opacity':.55 },
+      layout:{ 'line-cap':'round', 'line-join':'round' } });
+    m.addLayer({ id:'line-dash', type:'line', source:'line',
+      paint:{ 'line-color':'#c4a574', 'line-width':2.5, 'line-dasharray':[2,2] },
+      layout:{ 'line-cap':'round', 'line-join':'round' } });
+  }
+  if(!m.getSource('rings')){
+    m.addSource('rings', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    m.addLayer({ id:'rings-fill', type:'fill', source:'rings',
+      paint:{ 'fill-color':'#d4a24c', 'fill-opacity':.08 } });
+    m.addLayer({ id:'rings-line', type:'line', source:'rings',
+      paint:{ 'line-color':'#d4a24c', 'line-width':1, 'line-opacity':.6 } });
+  }
+  if(!m.getSource('doors')){
+    m.addSource('doors', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    m.addLayer({ id:'doors', type:'circle', source:'doors', paint:{
+      'circle-radius':['interpolate',['linear'],['zoom'], 13,3, 16,6, 19,11],
+      'circle-color':['get','color'],
+      'circle-stroke-width':['case',['==',['get','mark'],''],1.4,3],
+      'circle-stroke-color':['match',['get','mark'],'k','#3f7d52','l','#12182B','n','#9aa3b8','#ffffff'],
+      'circle-opacity':['case',['==',['get','mark'],'n'],.35,.95] } });
+    m.addLayer({ id:'doorno', type:'symbol', source:'doors', minzoom:17.5, layout:{
+      'text-field':['get','n'], 'text-size':10, 'text-offset':[0,-1.1], 'text-allow-overlap':false },
+      paint:{ 'text-color':'#12182B', 'text-halo-color':'#fff', 'text-halo-width':1.4 } });
+  }
+}
+function clearMarkers(){ MARKERS.forEach(function(m){ m.remove(); }); MARKERS = []; }
+function pinEl(html){ var d = document.createElement('div'); d.innerHTML = html; return d.firstChild; }
+function setData(id, data){ var s = S.map.getSource(id); if(s) s.setData(data); }
+function fc(f){ return { type:'FeatureCollection', features:f }; }
+function ring(lat, lon, miles){
+  var pts = [], R = miles/69;
+  for(var i=0;i<=48;i++){
+    var a = i/48*2*Math.PI;
+    pts.push([lon + R*Math.cos(a)/Math.cos(lat*Math.PI/180), lat + R*Math.sin(a)]);
+  }
+  return { type:'Feature', geometry:{ type:'Polygon', coordinates:[pts] }, properties:{} };
+}
+function fit(pts, pad){
+  if(!pts.length) return;
+  var w=180, s=90, e=-180, n=-90;
+  pts.forEach(function(p){ w=Math.min(w,p[1]); e=Math.max(e,p[1]); s=Math.min(s,p[0]); n=Math.max(n,p[0]); });
+  try{ S.map.fitBounds([[w,s],[e,n]], { padding:{ top:110, bottom:Math.round(window.innerHeight*0.46), left:40, right:40 }, duration:600, maxZoom:17.5 }); }catch(e){}
 }
 
 /* ---------- overview: every route on one map ---------- */
 function paintOverview(){
-  S.over.clearLayers(); S.layer.clearLayers();
-  var pts = [];
+  if(!S.styled) return;
+  clearMarkers();
+  setData('doors', fc([])); setData('line', fc([]));
+  var pts = [], rings = [];
   AREAS.forEach(function(a){
     if(S.area !== 'all' && S.area !== a.id) return;
     a.reports.forEach(function(rep){
       pts.push([rep.lat, rep.lon]);
-      S.over.addLayer(L.circle([rep.lat, rep.lon], { radius:11265, color:'#d4a24c', weight:1,
-        fillColor:'#d4a24c', fillOpacity:.07 }));   /* the 7-mile knock radius */
-      S.over.addLayer(L.marker([rep.lat, rep.lon], { icon:L.divIcon({ className:'', iconSize:null,
-        html:'<div class="stormpin">'+esc(rep.mag)+'</div>' }) })
-        .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)));
+      rings.push(ring(rep.lat, rep.lon, 7));
+      MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="stormpin">'+esc(rep.mag)+'</div>') })
+        .setLngLat([rep.lon, rep.lat])
+        .setPopup(new maplibregl.Popup({ offset:14 }).setHTML(
+          '<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)))
+        .addTo(S.map));
     });
   });
+  setData('rings', fc(rings));
   ROUTES.forEach(function(r){
     if(S.area !== 'all' && S.area !== r.area) return;
     pts.push(r.center);
-    var cached = cacheGet(r.id);
-    var n = cached ? orderDoors(cached, r).length : 0;
-    var done = 0;
-    if(cached) orderDoors(cached, r).forEach(function(p){ if(markOf(p.id, r.id)) done++; });
-    S.over.addLayer(L.marker(r.center, { icon:L.divIcon({ className:'', iconSize:null,
-      html:'<div class="pin'+(r.area==='fp'?' fp':'')+'">'+esc(r.name)+
-           '<small>'+(n? n+' doors'+(done?' &middot; '+done+' done':'') : 'tap to load')+'</small></div>' }) })
-      .on('click', function(){ focusRoute(r.id); }));
-    if(cached){
-      var line = orderDoors(cached, r).filter(function(p){ return p.lat; }).map(function(p){ return [p.lat,p.lon]; });
-      if(line.length) S.over.addLayer(L.polyline(line, { color:'#12182B', weight:2.5, opacity:.55 }));
-    }
+    var cached = cacheGet(r.id), d = cached ? orderDoors(cached, r) : [];
+    var done = 0; d.forEach(function(p){ if(markOf(p.id, r.id)) done++; });
+    var el = pinEl('<div class="pin'+(r.area==='fp'?' fp':'')+'">'+esc(r.name)+
+      '<small>'+(d.length ? d.length+' doors'+(done?' &middot; '+done+' done':'') : 'tap to load')+'</small></div>');
+    el.addEventListener('click', function(ev){ ev.stopPropagation(); focusRoute(r.id); });
+    MARKERS.push(new maplibregl.Marker({ element:el }).setLngLat([r.center[1], r.center[0]]).addTo(S.map));
   });
-  S.over.addLayer(L.marker(YARD, { icon:L.divIcon({ className:'', iconSize:null,
-    html:'<div class="yardpin">The yard &middot; Vero Beach</div>' }) }));
+  MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="yardpin">The yard &middot; Vero Beach</div>') })
+    .setLngLat([YARD[1], YARD[0]]).addTo(S.map));
   pts.push(YARD);
-  if(pts.length) try{ S.map.fitBounds(L.latLngBounds(pts).pad(0.12), { animate:false }); }catch(e){}
+  fit(pts);
 }
 
-/* ---------- one route, its doors ---------- */
+/* ---------- one route ---------- */
 function paintRoute(){
-  S.over.clearLayers(); S.layer.clearLayers();
-  var shown = vis(), pts = [];
+  if(!S.styled) return;
+  clearMarkers();
+  setData('rings', fc([]));
+  var shown = vis(), pts = [], feats = [], line = [];
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
   a.reports.forEach(function(rep){
-    S.layer.addLayer(L.marker([rep.lat, rep.lon], { icon:L.divIcon({ className:'', iconSize:null,
-      html:'<div class="stormpin">'+esc(rep.mag)+'</div>' }) })
-      .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)));
+    MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="stormpin">'+esc(rep.mag)+'</div>') })
+      .setLngLat([rep.lon, rep.lat])
+      .setPopup(new maplibregl.Popup({ offset:14 }).setHTML(
+        '<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)))
+      .addTo(S.map));
   });
   shown.forEach(function(p, i){
     if(!p.lat) return;
-    pts.push([p.lat, p.lon]);
-    var m = markOf(p.id), e = era(p.yr);
-    S.layer.addLayer(L.circleMarker([p.lat, p.lon], {
-      radius: m ? 8 : 6,
-      color: m==='k' ? '#3f7d52' : (m==='l' ? '#12182B' : '#ffffff'),
-      weight: m ? 3 : 1.5, opacity:1,
-      fillColor: ERA_COLOR[e], fillOpacity: m==='n' ? .3 : .95
-    }).bindPopup(function(){
-      return '<b>'+esc(p.ad)+'</b><br>'+
-        '<span style="color:#5b667c">Door '+(i+1)+' of '+shown.length+
-        (S.blocks.length>1 ? ' &middot; block '+(S.bi+1) : '')+'</span><br>'+
-        'Built '+(p.yr||'—')+(p.sf?' &middot; '+p.sf+' sq ft':'')+'<br>'+
-        'Owner of record: '+esc(p.own||'—')+'<br>'+
-        '<button class="btn" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button>'+
-        '<button class="btn" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>'+
-        '<button class="btn" onclick="setMark(\''+p.id+'\',\'l\')">Lead</button>';
-    }));
+    pts.push([p.lat, p.lon]); line.push([p.lon, p.lat]);
+    feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[p.lon, p.lat] },
+      properties:{ id:p.id, n:String(i+1), ad:p.ad, own:p.own||'', yr:p.yr||0, sf:p.sf||0,
+                   color:ERA_COLOR[era(p.yr)], mark:markOf(p.id) } });
   });
-  if(pts.length){
-    S.layer.addLayer(L.polyline(pts, { color:'#12182B', weight:3, opacity:.8 }));
-    S.layer.addLayer(L.polyline(pts, { color:'#c4a574', weight:1.5, opacity:.9, dashArray:'6 8' }));
-    setTimeout(function(){
-      try{ S.map.invalidateSize(); S.map.flyToBounds(L.latLngBounds(pts).pad(0.14), { duration:.6 }); }catch(e){}
-    }, 150);
-  }
+  setData('doors', fc(feats));
+  setData('line', fc(line.length ? [{ type:'Feature', geometry:{ type:'LineString', coordinates:line }, properties:{} }] : []));
+  fit(pts);
 }
-function paintMap(){ if(!S.map) return; if(S.mode==='route') paintRoute(); else paintOverview(); }
+function doorPopup(f){
+  var p = f.properties;
+  new maplibregl.Popup({ offset:12 })
+    .setLngLat(f.geometry.coordinates)
+    .setHTML('<b>'+esc(p.ad)+'</b><br><span style="color:#5b667c">Door '+p.n+' of '+vis().length+
+      (S.blocks.length>1 ? ' &middot; block '+(S.bi+1) : '')+'</span><br>'+
+      'Built '+(p.yr||'—')+(p.sf?' &middot; '+p.sf+' sq ft':'')+'<br>Owner of record: '+esc(p.own||'—')+
+      '<br><button class="btn" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button>'+
+      '<button class="btn" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>'+
+      '<button class="btn" onclick="setMark(\''+p.id+'\',\'l\')">Lead</button>')
+    .addTo(S.map);
+}
+function paintMap(){ if(!S.map || !S.styled) return; if(S.mode==='route') paintRoute(); else paintOverview(); }
 
-/* ---------- where am I ---------- */
-function locateMe(){
-  if(!navigator.geolocation){ alert('This phone will not give the page a location.'); return; }
-  var btn = document.getElementById('gpsfab');
-  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; S.gps.clearLayers();
-               btn.className='fab'; return; }
-  btn.className='fab on';
-  S.watch = navigator.geolocation.watchPosition(function(pos){
-    var ll = [pos.coords.latitude, pos.coords.longitude];
-    S.me = ll; S.gps.clearLayers();
-    S.gps.addLayer(L.circle(ll, { radius: pos.coords.accuracy||30, color:'#1a73e8', weight:1, fillOpacity:.10 }));
-    S.gps.addLayer(L.circleMarker(ll, { radius:7, color:'#fff', weight:3, fillColor:'#1a73e8', fillOpacity:1 }));
-    if(!S.centred){ S.centred = true; S.map.setView(ll, Math.max(S.map.getZoom(), 16)); }
-    if(S.mode==='route') renderRouteHead();
-  }, function(){ btn.className='fab'; }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
-}
 function nearestDoor(){
   if(!S.me || !S.doors.length) return null;
-  var best=null, bd=1e9, list=vis();
-  list.forEach(function(p,i){
+  var best=null, bd=1e9;
+  vis().forEach(function(p,i){
     if(!p.lat) return;
     var dx=(p.lat-S.me[0])*364000, dy=(p.lon-S.me[1])*322000, d=Math.sqrt(dx*dx+dy*dy);
     if(d<bd){ bd=d; best={i:i, p:p, ft:Math.round(d)}; }
