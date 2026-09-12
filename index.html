@@ -102,6 +102,10 @@ table.sheet th,table.sheet td{border:1px solid #999;padding:4px 5px;text-align:l
   .noprint,#home,.rbar,#map,.maptools,.tabs,.pane{display:none !important}
   #sheet{display:block !important;color:#000}
   #sheet h2{margin:0 0 4px}
+  #sheet .pg{break-after:page;page-break-after:always}
+  #sheet .pg:last-child{break-after:auto;page-break-after:auto}
+  table.sheet th,table.sheet td{border:1px solid #444}
+  #sheet .plan{font-size:11px;margin:2px 0 8px}
 }
 @media (max-width:520px){
   .wrap{padding:12px}.appname{font-size:22px}#map{height:52vh}
@@ -165,7 +169,8 @@ table.sheet th,table.sheet td{border:1px solid #999;padding:4px 5px;text-align:l
   <div class="maptools noprint">
     <button class="btn prime" onclick="openDrive()">Drive it in Google Maps</button>
     <button class="btn" onclick="locateMe()" id="gpsbtn">Where am I</button>
-    <button class="btn" onclick="window.print()">Print walk sheet</button>
+    <button class="btn" onclick="printSheet(false)">Print this block</button>
+    <button class="btn" onclick="printSheet(true)">Print every block</button>
     <button class="btn" onclick="reload()">Refresh records</button>
   </div>
   <div class="tabs noprint">
@@ -226,61 +231,61 @@ const AREAS = [
 ];
 
 const ROUTES = [
- {id:'r1', area:'hail', name:'Corey & Ramblebrook', town:'Malabar',
+ {id:'r1', pace:10, paceWhy:'Acre lots and long driveways — you walk more than you knock.', area:'hail', name:'Corey & Ramblebrook', town:'Malabar',
   why:'The NWS man who called in the hail was standing on Ramblebrook St. You are knocking the exact block that got reported.',
   center:[27.9400,-80.6000], d:0.013,
   streets:['COREY RD','RAMBLEBROOK ST','FARNSWORTH AVE','GREYTWIG PL','FLAMEVINE PL','SERNA AVE'],
   park:'Park at the Corey Rd end and walk in. Big lots, long driveways — this is a slow, friendly street, not a numbers street.'},
 
- {id:'r2', area:'hail', name:'Paragon & Talavera', town:'Southeast Palm Bay',
+ {id:'r2', pace:14, paceWhy:'Sidewalks, tight lots, cars in the drive after five.', area:'hail', name:'Paragon & Talavera', town:'Southeast Palm Bay',
   why:'One to one-and-a-half inch hail was reported at Paragon Rd and Babcock St. Dense, newer, walkable — the most doors per hour in the whole book.',
   center:[27.9600,-80.6200], d:0.013,
   streets:['PARAGON RD SE','TALBOTT ST SE','TALAVERA ST SE','WACO BLVD SE','SALAZAR ST SE','PALAU ST SE'],
   park:'Park on Paragon and work the side streets. Sidewalks, young families, cars home after 5.'},
 
- {id:'r3', area:'hail', name:'Plantation & Eldron', town:'Bayside Lakes, Palm Bay',
+ {id:'r3', pace:13, paceWhy:'Subdivision circles, normal spacing.', area:'hail', name:'Plantation & Eldron', town:'Bayside Lakes, Palm Bay',
   why:'Three miles east-southeast of Bayside Lakes is where the spotter called 65 mph gusts and inch-and-a-quarter hail. This is that ground.',
   center:[27.9200,-80.6200], d:0.013,
   streets:['PLANTATION CIR SE','PERALTA DR SE','ELDRON BLVD SE','DEPEW ST SE','DIANE AVE SE','COGAN DR SE','RILA ST SE'],
   park:'Eldron Blvd is the spine. Park off it and take the circles one at a time.'},
 
- {id:'r4', area:'hail', name:'Barefoot Cir & Wren', town:'Barefoot Bay, Micco',
+ {id:'r4', pace:18, paceWhy:'Manufactured homes, close together, people home and happy to talk.', area:'hail', name:'Barefoot Cir & Wren', town:'Barefoot Bay, Micco',
   why:'The largest manufactured-home community in Florida, mostly retirees, and manufactured roofs bruise at sizes that shrug off a tile roof. People are home at 3pm here.',
   center:[27.8800,-80.5200], d:0.013,
   streets:['BAREFOOT CIR','WREN CIR','WATERWAY DR','EGRET CIR','THRUSH CIR'],
   park:'⚠ Barefoot Bay is a deed-restricted community with its own recreation district. Check the community’s own solicitation rules at the office before you walk it — a complaint here travels to 5,000 neighbours in an afternoon.'},
 
- {id:'r5', area:'north', name:'Emerson & Holiday Park', town:'Northeast Palm Bay',
+ {id:'r5', pace:12, paceWhy:'Quarter-acre GDC lots, deeper setbacks.', area:'north', name:'Emerson & Holiday Park', town:'Northeast Palm Bay',
   why:'The inch of hail landed at Malabar Rd and I-95, right here. These are the original General Development lots — the oldest roofs on any route in the book.',
   center:[28.0100,-80.6400], d:0.013,
   streets:['EMERSON DR NE','HOLIDAY PARK BLVD NE','FAIRHAVEN ST NE','MEADOWBROOK RD NE','ESTERBROOK AVE NE','BRISBANE ST NE','RILEY AVE NE'],
   park:'Emerson Dr is busy — park on a side street and walk. Older owners, long ownership, many originals still in the house.'},
 
- {id:'r6', area:'north', name:'Melbourne Ave & Park', town:'Historic downtown Melbourne',
+ {id:'r6', pace:14, paceWhy:'Small old-town lots, close together.', area:'north', name:'Melbourne Ave & Park', town:'Historic downtown Melbourne',
   why:'Under the 60–65 mph gust report. 1940s and 1950s houses, old roof decks, and owners who care about the house.',
   center:[28.0800,-80.6150], d:0.012,
   streets:['E MELBOURNE AVE','E LINCOLN AVE','PARK AVE','ELIZABETH ST','E FEE AVE','PALMETTO AVE'],
   park:'Park downtown and walk out. Small lots, close together — the fastest walking in the book, but expect historic-district rules on materials.'},
 
- {id:'r8', area:'north', name:'Riverside & Bahama', town:'Indialantic, the barrier island',
+ {id:'r8', pace:12, paceWhy:'Island lots, gates and hedges, some second homes.', area:'north', name:'Riverside & Bahama', town:'Indialantic, the barrier island',
   why:'The 60–65 mph gust report was logged three miles west-southwest of here. Nineteen-sixties island houses that have been taking salt and wind for sixty years, and owners who have been through this before.',
   center:[28.0900,-80.5680], d:0.010,
   streets:['S RIVERSIDE DR','FRANKLYN AVE','BAHAMA DR','SEABREEZE DR','MICHIGAN AVE','TAMPA AVE','MELBOURNE AVE'],
   park:'⚠ Indialantic and Melbourne Beach are their own towns with their own town halls — ring them about local solicitation rules before you walk it, on top of the county permit. Park on S Riverside by the river and walk the numbered avenues across toward the ocean.'},
 
- {id:'r9', area:'hail', name:'Dittmer & Cogan', town:'Bayside Lakes, Palm Bay',
+ {id:'r9', pace:13, paceWhy:'One long circle, normal spacing.', area:'hail', name:'Dittmer & Cogan', town:'Bayside Lakes, Palm Bay',
   why:'One hundred and sixty doors on a single circle, directly under the spotter who called 65 mph gusts and inch-and-a-quarter hail. The 2023 and 2024 streets next door are left out on purpose — those roofs are new and still the builder’s problem.',
   center:[27.9160,-80.6320], d:0.010,
   streets:['DITTMER CIR SE','COGAN DR SE','TOULON RD SE','DEPEW ST SE','HERO ST SE','GRANT AVE SE'],
   park:'Dittmer is one long loop. Park at the mouth of it and walk the circle round — you end up back at the truck without crossing anything twice.'},
 
- {id:'r7', area:'fp', name:'Orange Ave & Woodcrest', town:'West Fort Pierce',
+ {id:'r7', pace:8, paceWhy:'Rural. You drive between doors, you do not walk.', area:'fp', name:'Orange Ave & Woodcrest', town:'West Fort Pierce',
   why:'The hail photo came off Orange Ave west of the Turnpike. This is the only residential pocket inside that report.',
   center:[27.4500,-80.4600], d:0.016,
   streets:['ORANGE AVE','WOODCREST DR','DUSK WAY','SUNRISE DR','PULITZER RD','S BROCKSMITH RD'],
   park:'Rural. Acre lots, long drives, dogs. Drive it, don’t walk it — park at each house.'},
 
- {id:'r10', area:'fp', name:'Avenue J & 39th', town:'Lincoln Park, northwest Fort Pierce',
+ {id:'r10', pace:15, paceWhy:'Straight grid, small lots, porches close to the street.', area:'fp', name:'Avenue J & 39th', town:'Lincoln Park, northwest Fort Pierce',
   why:'The oldest roofs in the whole book — a 1960s grid, long ownership, and the neighbourhood that produced the Highwaymen and kept Zora Neale Hurston. Straight streets, close houses, the most doors per hour in St. Lucie County.',
   center:[27.4520,-80.3620], d:0.010,
   streets:['AVENUE J','AVENUE M','N 39TH ST','AVENUE I','N 27TH ST','AVENUE K','N 37TH ST','N 40TH ST'],
@@ -425,7 +430,7 @@ var NAIP = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/Im
 var ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 var OSM  = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-var S = { route:null, doors:[], map:null, layer:null, gps:null, watch:null };
+var S = { route:null, doors:[], blocks:[], bi:0, map:null, layer:null, gps:null, watch:null };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function daysLeft(iso){
@@ -529,6 +534,109 @@ function orderDoors(rows, r){
   return out;
 }
 
+/* ---------- blocks: one afternoon at a time ----------
+   A street list of 583 doors is not a plan, it is a guilt trip. Cut the
+   ordered walk into blocks of about 120 doors, breaking at a street corner
+   wherever the count allows. */
+var HOURS = 4;                 /* 3:30pm to dusk, which is what a knock day is */
+function blockTarget(r){ return Math.round((r.pace||13) * HOURS); }
+function makeBlocks(d, target){
+  if(d.length <= target*1.25) return [d];
+  var n = Math.ceil(d.length/target), size = Math.round(d.length/n);
+  function stOf(p){ return p.ad.slice(p.ad.indexOf(' ')+1); }
+  /* where one street ends and the next begins */
+  var corners = [];
+  for(var i=1; i<d.length; i++){ if(stOf(d[i]) !== stOf(d[i-1])) corners.push(i); }
+  /* cut at every ideal position, but slide the cut to a street corner when
+     one is close enough — a block that ends at a corner is a block you can
+     see the end of */
+  var cuts = [], prev = 0;
+  for(var j=1; j<n; j++){
+    var ideal = Math.round(j*size), best = ideal, bd = size*0.35;
+    corners.forEach(function(c){
+      var gap = Math.abs(c-ideal);
+      if(gap < bd && c > prev + size*0.4 && c < d.length - size*0.4){ bd = gap; best = c; }
+    });
+    if(best > prev){ cuts.push(best); prev = best; }
+  }
+  var out = [], from = 0;
+  cuts.forEach(function(c){ out.push(d.slice(from,c)); from = c; });
+  out.push(d.slice(from));
+  return out.filter(function(b){ return b.length; });
+}
+
+function blockName(b){
+  var a = b[0].ad.slice(b[0].ad.indexOf(' ')+1);
+  var z = b[b.length-1].ad.slice(b[b.length-1].ad.indexOf(' ')+1);
+  return a === z ? a : a + ' to ' + z;
+}
+function vis(){ return (S.blocks && S.blocks.length > 1) ? S.blocks[S.bi] : S.doors; }
+function setBlock(i){
+  S.bi = i;
+  try{ localStorage.setItem('sb:b:'+S.route.id, i); }catch(e){}
+  renderDoors(); renderSheet(); paintMap();
+  window.scrollTo(0,0);
+}
+
+/* ---------- when it gets dark ----------
+   Standard sunrise/sunset algorithm (US Naval Observatory), zenith 90.833.
+   No library, no network — the phone already knows the date. */
+function sunsetAt(lat, lon, when){
+  var rad = Math.PI/180;
+  var start = new Date(when.getFullYear(), 0, 0);
+  var day = Math.floor((when - start)/86400000);
+  var lngHour = lon/15;
+  var t = day + ((18 - lngHour)/24);
+  var M = (0.9856*t) - 3.289;
+  var L = M + (1.916*Math.sin(M*rad)) + (0.020*Math.sin(2*M*rad)) + 282.634; L = (L+360)%360;
+  var RA = Math.atan(0.91764*Math.tan(L*rad))/rad; RA = (RA+360)%360;
+  RA = (RA + (Math.floor(L/90)*90 - Math.floor(RA/90)*90))/15;
+  var sinDec = 0.39782*Math.sin(L*rad), cosDec = Math.cos(Math.asin(sinDec));
+  var cosH = (Math.cos(90.833*rad) - (sinDec*Math.sin(lat*rad))) / (cosDec*Math.cos(lat*rad));
+  if(cosH > 1 || cosH < -1) return null;
+  var H = (Math.acos(cosH)/rad)/15;
+  var T = H + RA - (0.06571*t) - 6.622;
+  var UT = ((T - lngHour) % 24 + 24) % 24;
+  var out = new Date(when.getTime());
+  out.setUTCHours(Math.floor(UT), Math.round((UT % 1)*60), 0, 0);
+  return out;
+}
+function clock(d){
+  if(!d) return '—';
+  var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? 'pm' : 'am';
+  h = h % 12; if(!h) h = 12;
+  return h + ':' + (m<10?'0':'') + m + ap;
+}
+function addMin(d, mins){ return new Date(d.getTime() + mins*60000); }
+function miles(a, b){
+  var dx = (a[0]-b[0])*69, dy = (a[1]-b[1])*60.6;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+function blockCentre(b){
+  var la=0, lo=0, n=0;
+  b.forEach(function(p){ if(p.lat){ la+=p.lat; lo+=p.lon; n++; } });
+  return n ? [la/n, lo/n] : S.route.center;
+}
+/* the afternoon, in plain times */
+function plan(b){
+  var r = S.route, pace = r.pace || 13;
+  var left = b.filter(function(p){ return !markOf(p.id); }).length;
+  var now = new Date(), start = new Date(); start.setHours(15,30,0,0);
+  if(now > start){                       /* already out — plan from right now */
+    start = new Date(Math.ceil(now.getTime()/300000)*300000);
+  }
+  var dark = sunsetAt(r.center[0], r.center[1], new Date());
+  var lastKnock = dark ? addMin(dark, -15) : null;
+  var mins = Math.round(left/pace*60);
+  var end = addMin(start, mins);
+  var road = miles(YARD, blockCentre(b)) * 1.3;
+  var drive = Math.round(road/45*60) + 8;
+  return { pace:pace, left:left, start:start, dark:dark, lastKnock:lastKnock,
+           mins:mins, end:end, road:road, drive:drive,
+           fits: lastKnock ? end <= lastKnock : true,
+           over: lastKnock ? Math.max(0, Math.round((end - lastKnock)/60000)) : 0 };
+}
+
 /* ---------- marks ---------- */
 function markOf(id){ try{ return localStorage.getItem('sb:m:'+S.route.id+':'+id)||''; }catch(e){ return ''; } }
 function setMark(id, v){
@@ -542,6 +650,7 @@ function setMark(id, v){
 /* ---------- route ---------- */
 function openRoute(id){
   S.route = ROUTES.filter(function(r){ return r.id===id; })[0];
+  S.doors = []; S.blocks = []; S.bi = 0;
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
   document.getElementById('home').style.display='none';
   document.getElementById('route').style.display='block';
@@ -571,7 +680,13 @@ function load(){
   });
 }
 function reload(){ try{ localStorage.removeItem('sb:p:'+S.route.id); }catch(e){} load(); }
-function afterLoad(){ renderDoors(); renderSheet(); paintMap(); }
+function afterLoad(){
+  S.blocks = makeBlocks(S.doors, blockTarget(S.route));
+  var want = 0;
+  try{ want = parseInt(localStorage.getItem('sb:b:'+S.route.id),10) || 0; }catch(e){}
+  S.bi = Math.max(0, Math.min(want, S.blocks.length-1));
+  renderDoors(); renderSheet(); paintMap();
+}
 function goHome(){
   if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; }
   document.getElementById('route').style.display='none';
@@ -630,8 +745,8 @@ function buildMap(){
 function paintMap(){
   if(!S.map || !S.layer) return;
   S.layer.clearLayers();
-  var pts = [];
-  S.doors.forEach(function(p, i){
+  var pts = [], shown = vis();
+  shown.forEach(function(p, i){
     if(!p.lat) return;
     pts.push([p.lat, p.lon]);
     var m = markOf(p.id), e = era(p.yr);
@@ -643,7 +758,7 @@ function paintMap(){
     });
     mk.bindPopup(function(){
       return '<b>'+esc(p.ad)+'</b><br>'+
-        '<span style="color:#c4a574">Door '+(i+1)+' of '+S.doors.length+'</span><br>'+
+        '<span style="color:#c4a574">Door '+(i+1)+' of '+shown.length+(S.blocks.length>1?' \u00b7 block '+(S.bi+1):'')+'</span><br>'+
         'Built '+(p.yr||'—')+' · '+(p.sf?p.sf+' sq ft':'')+'<br>'+
         'Owner of record: '+esc(p.own||'—')+'<br>'+
         '<span style="color:#9aa3b8;font-size:11.5px">Florida Dept. of Revenue 2025 roll. House age, not roof age.</span><br>'+
@@ -679,7 +794,7 @@ function locateMe(){
 }
 function nearestDoor(ll){
   var best=null, bd=1e9;
-  S.doors.forEach(function(p,i){
+  vis().forEach(function(p,i){
     if(!p.lat) return;
     var dx=(p.lat-ll[0])*111320, dy=(p.lon-ll[1])*98000, d=Math.sqrt(dx*dx+dy*dy);
     if(d<bd){ bd=d; best=i; }
@@ -689,7 +804,7 @@ function nearestDoor(ll){
 }
 
 function openDrive(){
-  var pts = S.doors.filter(function(p){ return p.lat; });
+  var pts = vis().filter(function(p){ return p.lat; });
   if(!pts.length){ alert('No doors loaded yet.'); return; }
   var picks = [];
   var step = Math.max(1, Math.floor(pts.length/8));
@@ -705,7 +820,7 @@ function openDrive(){
 <script>
 /* ---------- doors ---------- */
 function renderDoors(){
-  var r = S.route, d = S.doors;
+  var r = S.route, d = vis();
   if(!d.length){ return; }
   var yrs = d.map(function(p){ return p.yr; }).filter(function(y){ return y>1900; }).sort();
   var med = yrs.length ? yrs[Math.floor(yrs.length/2)] : 0;
@@ -715,15 +830,45 @@ function renderDoors(){
   d.forEach(function(p){ var m=markOf(p.id); if(m==='k')k++; if(m==='n')n++; });
 
   var h = '<div class="okbox"><b>Why this street.</b> '+esc(r.why)+'<br><br><b>Parking.</b> '+r.park+'</div>';
+
+  var pl = plan(d);
+  if(S.blocks.length > 1){
+    var walked = 0;
+    S.doors.forEach(function(p){ if(markOf(p.id)) walked++; });
+    h += '<h3>The afternoon</h3>'+
+         '<p class="note">'+S.doors.length+' doors on this route, cut into '+S.blocks.length+
+         ' blocks. A block is <b>one afternoon at this street\u2019s pace</b> \u2014 about '+
+         pl.pace+' doors an hour here. '+esc(S.route.paceWhy||'')+' '+walked+' of '+
+         S.doors.length+' marked so far.</p><div class="chips">';
+    S.blocks.forEach(function(b,i){
+      var done=0; b.forEach(function(p){ if(markOf(p.id)) done++; });
+      h += '<button class="chip'+(i===S.bi?' hot':'')+'" style="cursor:pointer" onclick="setBlock('+i+')">'+
+           (i===S.bi?'&#9656; ':'')+'Block '+(i+1)+' &middot; '+b.length+' doors'+
+           (done?' &middot; '+done+' done':'')+'</button>';
+    });
+    h += '</div>';
+  }
+  h += '<div class="okbox"><b>Block '+(S.bi+1)+(S.blocks.length>1?' of '+S.blocks.length:'')+
+       (S.blocks.length>1?' \u2014 '+esc(blockName(d)):'')+'.</b><br>'+
+       'Leave the yard about <b>'+clock(addMin(pl.start, -pl.drive))+'</b> \u2014 '+
+       Math.round(pl.road)+' road miles, call it '+pl.drive+' minutes.<br>'+
+       'Knock <b>'+clock(pl.start)+'</b> to <b>'+clock(pl.end)+'</b> for the '+pl.left+
+       ' doors still unmarked, at '+pl.pace+' an hour.<br>'+
+       'Sun goes down <b>'+clock(pl.dark)+'</b>. Last knock <b>'+clock(pl.lastKnock)+'</b> \u2014 after that you are the guy knocking in the dark.<br>'+
+       'Halfway (door '+Math.ceil(pl.left/2)+') by <b>'+clock(addMin(pl.start, Math.round(pl.mins/2)))+'</b>. '+
+       (pl.fits ? 'This block fits the daylight.' :
+        '<b style="color:#e79a94">This block runs '+pl.over+' minutes past dark.</b> Take what you get and finish it next time \u2014 do not chase it.')+
+       '</div>';
+  h += '<p class="note">Those times are a <b>model</b>, not a measurement \u2014 nobody has ever timed a Covenant door. Walk one block, tell me the real number, and every plan in this book gets honest.</p>';
   h += '<div class="chips">'+
-       '<span class="chip">'+d.length+' doors</span>'+
-       '<span class="chip">median built '+(med||'—')+'</span>'+
-       '<span class="chip">typical county value $'+(mjv?mjv.toLocaleString():'—')+'</span>'+
+       '<span class="chip">'+d.length+' doors'+(S.blocks.length>1?' in this block':'')+'</span>'+
+       '<span class="chip">median built '+(med||'\u2014')+'</span>'+
+       '<span class="chip">typical county value $'+(mjv?mjv.toLocaleString():'\u2014')+'</span>'+
        '<span class="chip hot">'+k+' knocked</span>'+
        '<span class="chip">'+n+' not home</span></div>';
   h += '<div class="legend">';
   ERA_NAME.forEach(function(nm,i){ h += '<span><i class="dot" style="background:'+ERA_COLOR[i]+'"></i>'+nm+'</span>'; });
-  h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll — public record, and the same book the property appraiser publishes. It is the age of the <b>house</b>. The roof can be any age. Use it to pick a street, never to tell a homeowner what they have.</p>';
+  h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll \u2014 public record, and the same book the property appraiser publishes. It is the age of the <b>house</b>. The roof can be any age. Use it to pick a street, never to tell a homeowner what they have.</p>';
 
   var last='';
   d.forEach(function(p,i){
@@ -732,15 +877,15 @@ function renderDoors(){
     var m = markOf(p.id), e = era(p.yr);
     h += '<div class="door">'+
       '<span class="n">'+(i+1)+'</span>'+
-      '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'—')+(p.sf?' · '+p.sf+' sq ft':'')+'</small></span>'+
-      '<span class="yr y'+e+'">'+(p.yr||'—')+'</span>'+
+      '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'\u2014')+(p.sf?' \u00b7 '+p.sf+' sq ft':'')+'</small></span>'+
+      '<span class="yr y'+e+'">'+(p.yr||'\u2014')+'</span>'+
       '<span class="mk">'+
         '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
-        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
-        '<button class="'+(m==='l'?'on':'')+'" title="Lead — name and number" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
+        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">\u2014</button>'+
+        '<button class="'+(m==='l'?'on':'')+'" title="Lead \u2014 name and number" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
       '</span></div>';
   });
-  h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = you got a name and a number; that one becomes a CRM row inside two days.</p>';
+  h += '<p class="note">K = somebody answered. \u2014 = nobody home, leave the card. L = you got a name and a number; that one becomes a CRM row inside two days.</p>';
   h += '<button class="btn" onclick="copyLeads()">Copy the leads and the knocks</button>';
   document.getElementById('p-doors').innerHTML = h;
 }
@@ -804,16 +949,31 @@ function renderSay(){
 }
 
 /* ---------- printable walk sheet ---------- */
-function renderSheet(){
+function sheetFor(b, i){
   var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0];
-  var h = '<h2>'+esc(r.name)+' — '+esc(r.town)+'</h2>'+
-    '<p>'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(a.loss)+' days left to file · Covenant Builders · CBC1253676 · (772) 473-7115</p>'+
+  var pl = plan(b);
+  var h = '<div class="pg"><h2>'+esc(r.name)+' \u2014 '+esc(r.town)+
+    (S.blocks.length>1 ? ' \u2014 block '+(i+1)+' of '+S.blocks.length : '')+'</h2>'+
+    '<p class="plan">'+esc(a.name)+' \u00b7 '+esc(a.when)+' \u00b7 '+daysLeft(a.loss)+
+    ' days left to file \u00b7 '+b.length+' doors \u00b7 '+pl.pace+' doors an hour \u00b7 knock '+
+    clock(pl.start)+' to '+clock(pl.end)+' \u00b7 dark at '+clock(pl.dark)+'</p>'+
+    '<p class="plan">Covenant Builders \u00b7 CBC1253676 \u00b7 (772) 473-7115 \u00b7 never say a roof has damage before you have been on it \u00b7 the carrier decides the claim</p>'+
     '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knocked</th><th>Not home</th><th>Name / number / notes</th></tr>';
-  S.doors.forEach(function(p,i){
-    h += '<tr><td>'+(i+1)+'</td><td>'+esc(p.ad)+'</td><td>'+esc(p.own||'')+'</td><td>'+(p.yr||'')+'</td><td></td><td></td><td></td></tr>';
+  b.forEach(function(p,j){
+    h += '<tr><td>'+(j+1)+'</td><td>'+esc(p.ad)+'</td><td>'+esc(p.own||'')+'</td><td>'+(p.yr||'')+'</td><td></td><td></td><td></td></tr>';
   });
-  h += '</table><p style="font-size:10px">Owner and year: Florida Dept. of Revenue 2025 tax roll. House age, not roof age.</p>';
-  document.getElementById('sheet').innerHTML = h;
+  return h + '</table><p class="plan">Owner and year: Florida Dept. of Revenue 2025 tax roll. House age, not roof age.</p></div>';
+}
+function renderSheet(all){
+  var out = '';
+  if(all && S.blocks.length > 1){ S.blocks.forEach(function(b,i){ out += sheetFor(b,i); }); }
+  else out = sheetFor(vis(), S.bi);
+  document.getElementById('sheet').innerHTML = out;
+}
+function printSheet(all){
+  renderSheet(all);
+  window.print();
+  setTimeout(function(){ renderSheet(false); }, 500);
 }
 
 renderHome();
