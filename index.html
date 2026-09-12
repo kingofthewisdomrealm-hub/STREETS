@@ -2,187 +2,186 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12182B">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>The Street Book — Covenant Builders</title>
-<meta name="description" content="Covenant Builders field guide: the storm neighbourhoods, the streets, the satellite, and what to say at the door.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
-  --navy:#12182B; --panel:#1a2238; --panel2:#232c46; --sand:#c4a574; --word:#e9e7e2;
-  --gold:#d4a24c; --red:#c1524a; --green:#6a9a6f; --line:rgba(233,231,226,.14);
-  --dim:#9aa3b8;
+  --navy:#12182B; --sand:#c4a574; --word:#e9e7e2; --gold:#d4a24c;
+  --ink:#1d2433; --ink2:#5b667c; --line:#e3e6ec; --card:#ffffff; --wash:#f5f6f8;
+  --red:#c1524a; --green:#3f7d52; --blue:#1a73e8;
+  --sheet-peek:132px;
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--navy);color:var(--word);
-  font-family:"Source Sans 3","Source Sans Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--wash);color:var(--ink);
+  font-family:"Roboto",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   -webkit-text-size-adjust:100%}
-body{padding-bottom:env(safe-area-inset-bottom)}
-h1,h2,h3,.disp{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-weight:600}
-a{color:var(--sand)}
-.wrap{max-width:960px;margin:0 auto;padding:18px}
-/* ---------- lockup ---------- */
-.lockup{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 0 6px}
-.lrule{width:190px;height:1px;background:var(--sand);opacity:.8}
-.crown{display:block}
-.lname{font-size:12.5px;letter-spacing:.20em;color:var(--word);text-transform:uppercase}
-.lpromise{font-size:7.5px;letter-spacing:.34em;color:var(--sand);text-transform:uppercase}
-.appname{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:26px;letter-spacing:.02em;margin:10px 0 2px;text-align:center}
-.sub{text-align:center;color:var(--dim);font-size:14px;margin:0 0 6px}
-/* ---------- cards ---------- */
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
-.card h2{margin:0 0 4px;font-size:20px}
-.card h3{margin:14px 0 6px;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sand)}
-.meta{color:var(--dim);font-size:13.5px;margin:2px 0 8px}
+.disp,h1,h2,h3{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-weight:600;margin:0}
+button{font-family:inherit}
+
+/* ---------- the map is the app ---------- */
+#map{position:fixed;inset:0;z-index:0;background:#dfe3e8}
+.leaflet-container{font-family:inherit;background:#dfe3e8}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,255,255,.72)}
+.leaflet-control-zoom{display:none}
+
+/* ---------- floating top bar ---------- */
+#topbar{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px;z-index:1000;
+  display:flex;align-items:center;gap:8px;background:var(--navy);color:var(--word);
+  border-radius:12px;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+#topbar .crown{flex:none}
+#tb-title{flex:1;min-width:0}
+#tb-title b{display:block;font-size:14.5px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tb-title small{display:block;font-size:11px;color:#a9b2c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#backbtn{display:none;background:none;border:0;color:var(--word);font-size:20px;line-height:1;padding:4px 6px;cursor:pointer}
+.filters{position:fixed;top:calc(60px + env(safe-area-inset-top));left:0;right:0;z-index:999;
+  display:flex;gap:6px;padding:0 8px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+  font-size:12.5px;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.14);cursor:pointer;white-space:nowrap}
+.fchip.on{background:var(--navy);color:var(--word);border-color:var(--navy)}
+
+/* ---------- floating round buttons ---------- */
+.fabs{position:fixed;right:10px;z-index:999;display:flex;flex-direction:column;gap:10px;
+  bottom:calc(var(--sheet-peek) + 16px)}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);
+  box-shadow:0 2px 8px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;color:var(--ink);padding:0}
+.fab.on{background:var(--navy);color:var(--word);border-color:var(--navy)}
+
+/* ---------- layer picker ---------- */
+#layers{position:fixed;right:10px;bottom:calc(var(--sheet-peek) + 70px);z-index:1001;display:none;
+  background:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.28);padding:8px;width:190px}
+#layers b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:2px 4px 6px}
+#layers button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 8px;border-radius:8px;
+  font-size:14px;color:var(--ink);cursor:pointer}
+#layers button.on{background:var(--wash);font-weight:600}
+
+/* ---------- the bottom sheet ---------- */
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:1002;background:var(--card);
+  border-radius:16px 16px 0 0;box-shadow:0 -3px 20px rgba(0,0,0,.20);
+  height:88vh;transform:translateY(calc(88vh - var(--sheet-peek)));
+  transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;touch-action:none}
+#sheet.half{transform:translateY(45vh)}
+#sheet.full{transform:translateY(0)}
+#grab{padding:8px 0 4px;cursor:grab;flex:none}
+#grab i{display:block;width:38px;height:4px;border-radius:2px;background:#c9cfdb;margin:0 auto}
+#sheethead{padding:0 16px 8px;flex:none}
+#sheetbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(28px + env(safe-area-inset-bottom));flex:1}
+
+/* ---------- content bits ---------- */
+h2.big{font-size:20px;margin:2px 0 2px}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 8px}
+p{font-size:14px;line-height:1.5;margin:8px 0}
+ul{margin:6px 0;padding-left:20px}li{font-size:14px;line-height:1.45;margin:5px 0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--word)}
-.chip.hot{background:rgba(212,162,76,.16);border-color:rgba(212,162,76,.5);color:var(--gold)}
-.chip.warn{background:rgba(193,82,74,.16);border-color:rgba(193,82,74,.5);color:#e79a94}
-.routebtn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;
-  background:var(--panel2);border:1px solid var(--line);color:var(--word);border-radius:8px;padding:12px;margin:8px 0;cursor:pointer;font-size:15px}
-.routebtn:hover{border-color:var(--sand)}
-.routebtn b{display:block;font-size:16px}
-.routebtn small{color:var(--dim);font-size:12.5px}
-.go{color:var(--sand);font-size:22px;line-height:1}
-.warnbox{border-left:3px solid var(--red);background:rgba(193,82,74,.10);padding:12px 14px;border-radius:0 8px 8px 0;margin:12px 0}
-.warnbox h3{color:#e79a94;margin-top:0}
-.okbox{border-left:3px solid var(--sand);background:rgba(196,165,116,.08);padding:12px 14px;border-radius:0 8px 8px 0;margin:12px 0}
-ul{margin:6px 0;padding-left:20px}li{margin:5px 0;font-size:14.5px;line-height:1.45}
-p{font-size:14.5px;line-height:1.5}
-.src{color:var(--dim);font-size:11.5px}
-.src a{color:var(--dim)}
-/* ---------- route screen ---------- */
-#route{display:none}
-.rbar{position:sticky;top:0;z-index:600;background:var(--navy);border-bottom:1px solid var(--line);
-  display:flex;align-items:center;gap:10px;padding:8px 12px;height:50px}
-.rbar b{font-size:15px}
-.rbar small{color:var(--dim);font-size:12px;display:block}
-.back{background:none;border:1px solid var(--line);color:var(--word);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
-#map{height:56vh;min-height:300px;width:100%;background:#0c101c}
-.maptools{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
-.btn{background:var(--panel2);border:1px solid var(--line);color:var(--word);border-radius:6px;padding:7px 11px;font-size:13.5px;cursor:pointer}
-.btn.prime{background:var(--sand);color:#12182B;border-color:var(--sand);font-weight:600}
-.btn:active{transform:translateY(1px)}
-.tabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:50px;background:var(--navy);z-index:500}
-.tab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);padding:11px 4px;font-size:14px;cursor:pointer}
-.tab.on{color:var(--word);border-bottom-color:var(--sand)}
-.pane{display:none;padding:4px 12px 30px}.pane.on{display:block}
-/* ---------- door list ---------- */
-.door{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:9px 2px}
-.door .n{width:26px;color:var(--dim);font-size:12px;flex:none}
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--wash);border:1px solid var(--line);color:var(--ink)}
+.chip.hot{background:var(--navy);color:var(--word);border-color:var(--navy)}
+.chip.warn{background:#fdeceb;border-color:#f3c9c6;color:#8d3b35}
+.btn{background:var(--wash);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  padding:9px 12px;font-size:13.5px;cursor:pointer;margin:0 6px 6px 0}
+.btn.prime{background:var(--navy);color:var(--word);border-color:var(--navy);font-weight:600}
+.btn.sand{background:var(--sand);color:var(--navy);border-color:var(--sand);font-weight:600}
+.rowbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--line);padding:12px 2px;cursor:pointer}
+.rowbtn:last-child{border-bottom:0}
+.rowdot{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff}
+.rowtxt{flex:1;min-width:0}
+.rowtxt b{display:block;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowtxt small{display:block;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowgo{color:var(--ink2);font-size:20px;flex:none}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:2px 0 4px}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink2);
+  padding:10px 2px;font-size:13.5px;cursor:pointer}
+.tab.on{color:var(--navy);border-bottom-color:var(--sand);font-weight:600}
+.pane{display:none}.pane.on{display:block}
+.plan{background:#fff8ec;border:1px solid #f0dfc0;border-radius:10px;padding:11px 13px;margin:10px 0;font-size:13.5px;line-height:1.55}
+.warn{background:#fdeceb;border:1px solid #f3c9c6;border-radius:10px;padding:11px 13px;margin:10px 0;font-size:13.5px;line-height:1.5}
+.note{font-size:12px;color:var(--ink2);margin:8px 0;line-height:1.45}
+.src{font-size:11px;color:var(--ink2)}
+.src a{color:var(--ink2)}
+h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:16px 0 4px}
+.door{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:9px 0}
+.door .n{width:24px;color:var(--ink2);font-size:11.5px;flex:none;text-align:right}
 .door .ad{flex:1;min-width:0}
-.door .ad b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.door .ad small{color:var(--dim);font-size:12px}
-.door .yr{font-size:12px;padding:2px 7px;border-radius:4px;flex:none}
+.door .ad b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.door .ad small{color:var(--ink2);font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yr{font-size:11.5px;padding:2px 6px;border-radius:4px;flex:none}
+.y0{background:#fbe3e1;color:#8d3b35}.y1{background:#fbeed4;color:#7a5a15}
+.y2{background:#f1e8d9;color:#6b5733}.y3{background:#e9ecf1;color:#5b667c}
 .mk{display:flex;gap:4px;flex:none}
-.mk button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:13px;cursor:pointer}
-.mk button.on{background:var(--sand);color:#12182B;border-color:var(--sand);font-weight:700}
-.y0{background:rgba(193,82,74,.22);color:#e79a94}
-.y1{background:rgba(212,162,76,.20);color:var(--gold)}
-.y2{background:rgba(196,165,116,.18);color:var(--sand)}
-.y3{background:rgba(154,163,184,.18);color:var(--dim)}
-.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--dim);padding:6px 0}
+.mk button{width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:13px;cursor:pointer}
+.mk button.on{background:var(--navy);color:var(--word);border-color:var(--navy);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--ink2);margin:6px 0}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-.count{font-size:13px;color:var(--dim);padding:6px 0}
-.note{font-size:12.5px;color:var(--dim);margin:8px 0}
-table.sheet{width:100%;border-collapse:collapse;font-size:12px}
-table.sheet th,table.sheet td{border:1px solid #999;padding:4px 5px;text-align:left}
-#sheet{display:none}
-.loading{padding:20px;text-align:center;color:var(--dim)}
-.foot{max-width:36ch;margin:24px auto;text-align:center;color:var(--dim);font-size:12px;line-height:1.6}
-.foot b{color:var(--word)}
-.leaflet-popup-content-wrapper{background:var(--panel);color:var(--word);border-radius:8px}
-.leaflet-popup-tip{background:var(--panel)}
-.leaflet-popup-content{margin:10px 12px;font-size:13.5px}
+.loading{padding:24px 0;text-align:center;color:var(--ink2);font-size:13.5px}
+
+/* ---------- map marks ---------- */
+.pin{background:var(--navy);color:var(--word);border:2px solid #fff;border-radius:999px;
+  padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pin.fp{background:#6b4f2a}
+.pin small{display:block;font-weight:400;font-size:10px;color:#c9cfdb}
+.stormpin{background:var(--gold);color:#2a2107;border:2px solid #fff;border-radius:999px;padding:4px 9px;
+  font-size:11.5px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.yardpin{background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:999px;padding:4px 9px;
+  font-size:11px;font-weight:700;white-space:nowrap}
+.leaflet-popup-content-wrapper{border-radius:12px}
+.leaflet-popup-content{margin:12px 14px;font-size:13.5px;line-height:1.45}
 .leaflet-popup-content b{font-size:15px}
-.leaflet-container{background:#0c101c;font-family:inherit}
-.pin{font:700 11px/20px system-ui;text-align:center;color:#12182B;border-radius:50%;border:2px solid #12182B}
+
+/* ---------- print ---------- */
+#print{display:none}
 @media print{
-  body{background:#fff;color:#000}
-  .noprint,#home,.rbar,#map,.maptools,.tabs,.pane{display:none !important}
-  #sheet{display:block !important;color:#000}
-  #sheet h2{margin:0 0 4px}
-  #sheet .pg{break-after:page;page-break-after:always}
-  #sheet .pg:last-child{break-after:auto;page-break-after:auto}
-  table.sheet th,table.sheet td{border:1px solid #444}
-  #sheet .plan{font-size:11px;margin:2px 0 8px}
-}
-@media (max-width:520px){
-  .wrap{padding:12px}.appname{font-size:22px}#map{height:52vh}
+  html,body{overflow:visible;height:auto;background:#fff}
+  #map,#topbar,.filters,.fabs,#layers,#sheet{display:none !important}
+  #print{display:block !important}
+  #print .pg{break-after:page;page-break-after:always}
+  #print .pg:last-child{break-after:auto;page-break-after:auto}
+  #print h2{margin:0 0 4px;font-size:15px}
+  #print .pl{font-size:10.5px;margin:2px 0 6px;color:#333}
+  table.sheet{width:100%;border-collapse:collapse;font-size:10.5px}
+  table.sheet th,table.sheet td{border:1px solid #444;padding:3px 4px;text-align:left}
+  table.sheet td:nth-child(5),table.sheet td:nth-child(6){width:34px}
 }
 </style>
 </head>
 <body>
-<!-- ================= HOME ================= -->
-<div id="home">
-<div class="wrap">
-  <div class="lockup">
-    <div class="lrule"></div>
-    <svg class="crown" width="17" height="15" viewBox="0 0 147 121" aria-hidden="true">
-      <path d="M11,116 L2,55 L45,66 L73,3 L101,66 L145,55 L136,116 Z" fill="none" stroke="#c4a574" stroke-width="13" stroke-linejoin="miter"/>
-    </svg>
-    <div class="lrule"></div>
-    <div class="lname">Covenant Builders</div>
-    <div class="lpromise">We Deliver</div>
-  </div>
-  <div class="appname">The Street Book</div>
-  <p class="sub">Three storm areas. Seven streets to walk. What hit, who lives there, and what a neighbour would say.</p>
+<div id="map"></div>
 
-  <div class="warnbox">
-    <h3>Read this before you knock</h3>
-    <p id="permitline"><b>Florida requires a permit to knock cold doors.</b> A “home solicitation sale” — selling goods or services at somebody’s house without being invited — needs a <b>Home Solicitation Sale permit</b> from the <b>Clerk of Court in that county</b> under F.S. 501.022. Brevard charges $100 plus a $24 background check, takes fingerprints, and the permit runs one year. Contractors are <b>not</b> on the exemption list. Invited visits are.</p>
-    <ul>
-      <li><b>You can’t sign a roof.</b> F.S. 489.113(3) makes a Certified Building Contractor subcontract roofing, and Covenant has no approved roofer yet. Knock, look, list — don’t sign the roof scope.</li>
-      <li><b>Never say “you have damage”</b> before you’ve been on the roof, and never say what insurance will cover. The carrier decides.</li>
-      <li><b>F.S. 489.147</b> — no paying or waiving deductibles, no gifts for signing, no referral money, and no interpreting the policy or adjusting the claim without a public adjuster licence.</li>
-      <li><b>Hours:</b> knock from about 3:30pm to dusk. Before 4 is empty, after dark is rude.</li>
-    </ul>
-    <p class="src">Sources: <a href="http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.022.html" target="_blank" rel="noopener">F.S. 501.022</a> · <a href="https://www.brevardclerk.us/home-solicitation-permit" target="_blank" rel="noopener">Brevard Clerk</a> · F.S. 489.113(3) · F.S. 489.147</p>
-  </div>
-
-  <div id="areas"></div>
-
-  <div class="card">
-    <h3>What the numbers here mean</h3>
-    <ul>
-      <li><b>Hail size</b> is what a person on the ground reported to the National Weather Service that day. One inch is where shingles start taking real damage.</li>
-      <li><b>Days to file</b> counts down one year from the date of the storm — F.S. 627.70132. A supplement runs eighteen months.</li>
-      <li><b>Year built</b> comes from the Florida Department of Revenue’s 2025 tax roll. It is the <b>house’s</b> age, not the roof’s. A 1989 house can wear a 2019 roof. The record points you at a street; the roof tells the truth.</li>
-    </ul>
-  </div>
-
-  <div class="foot">
-    <b>Covenant Builders</b> · CBC1253676 · (772) 473-7115<br>
-    Vero Beach · Sebastian · Fort Pierce · Port St. Lucie · Fellsmere<br>
-    Hablamos español.
-  </div>
-</div>
+<div id="topbar">
+  <button id="backbtn" onclick="goOverview()" aria-label="Back">&#8592;</button>
+  <svg class="crown" width="16" height="14" viewBox="0 0 147 121" aria-hidden="true">
+    <path d="M11,116 L2,55 L45,66 L73,3 L101,66 L145,55 L136,116 Z" fill="none" stroke="#c4a574" stroke-width="14" stroke-linejoin="miter"/>
+  </svg>
+  <div id="tb-title"><b>The Street Book</b><small>Covenant Builders &middot; where the storm hit</small></div>
 </div>
 
-<!-- ================= ROUTE ================= -->
-<div id="route">
-  <div class="rbar noprint">
-    <button class="back" onclick="goHome()">&larr;</button>
-    <div style="flex:1;min-width:0"><b id="rname">—</b><small id="rsub">—</small></div>
-  </div>
-  <div id="map"></div>
-  <div class="maptools noprint">
-    <button class="btn prime" onclick="openDrive()">Drive it in Google Maps</button>
-    <button class="btn" onclick="locateMe()" id="gpsbtn">Where am I</button>
-    <button class="btn" onclick="printSheet(false)">Print this block</button>
-    <button class="btn" onclick="printSheet(true)">Print every block</button>
-    <button class="btn" onclick="reload()">Refresh records</button>
-  </div>
-  <div class="tabs noprint">
-    <button class="tab on" data-p="doors" onclick="tab('doors')">Doors</button>
-    <button class="tab" data-p="area" onclick="tab('area')">The area</button>
-    <button class="tab" data-p="say" onclick="tab('say')">What to say</button>
-  </div>
-  <div class="pane on" id="p-doors"></div>
-  <div class="pane" id="p-area"></div>
-  <div class="pane" id="p-say"></div>
-  <div id="sheet"></div>
+<div class="filters" id="filters"></div>
+
+<div class="fabs">
+  <button class="fab" id="layerbtn" onclick="toggleLayers()" title="Map type">&#9707;</button>
+  <button class="fab" id="gpsfab" onclick="locateMe()" title="Where am I">&#10021;</button>
 </div>
+
+<div id="layers">
+  <b>Map type</b>
+  <button data-b="map" onclick="setBase('map')">Map</button>
+  <button data-b="sat" onclick="setBase('sat')">Satellite</button>
+  <button data-b="hyb" onclick="setBase('hyb')">Satellite + street names</button>
+  <button data-b="naip" onclick="setBase('naip')">Aerial photo (USGS)</button>
+</div>
+
+<div id="sheet">
+  <div id="grab"><i></i></div>
+  <div id="sheethead"></div>
+  <div id="sheetbody"></div>
+</div>
+
+<div id="print"></div>
 <script>
 /* ============================================================
    THE STREET BOOK — data
@@ -423,63 +422,35 @@ const SCRIPT_RULES = {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* ============================================================
-   App
+   Sources. All open access — no key, no account, no bill.
    ============================================================ */
-var FDOR = 'https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query';
-var NAIP = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
-var ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-var OSM  = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+var FDOR    = 'https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query';
+var NAIP    = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
+var CARTO   = 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+var ESRI    = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+var ESRILAB = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
-var S = { route:null, doors:[], blocks:[], bi:0, map:null, layer:null, gps:null, watch:null };
+var S = { mode:'overview', area:'all', base:'map', route:null, doors:[], blocks:[], bi:0,
+          map:null, over:null, layer:null, gps:null, watch:null, me:null, centred:false, tab:'doors' };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
 function daysLeft(iso){
-  var loss = new Date(iso+'T12:00:00');
-  var end = new Date(loss.getTime()); end.setFullYear(end.getFullYear()+1);
-  return Math.round((end - TODAY)/86400000);
+  var loss = new Date(iso+'T12:00:00'), end = new Date(loss.getTime());
+  end.setFullYear(end.getFullYear()+1);
+  return Math.round((end - new Date())/86400000);
 }
-function era(y){
-  if(!y || y<1900) return 3;
-  if(y>=2015) return 3;
-  if(y>=2000) return 2;
-  if(y>=1980) return 1;
-  return 0;
-}
+function era(y){ if(!y || y<1900 || y>=2015) return 3; if(y>=2000) return 2; if(y>=1980) return 1; return 0; }
 var ERA_COLOR = ['#c1524a','#d4a24c','#c4a574','#9aa3b8'];
 var ERA_NAME  = ['Before 1980','1980–1999','2000–2014','2015 or newer'];
 
-/* ---------- home ---------- */
-function renderHome(){
-  var h = '';
-  AREAS.forEach(function(a){
-    var dl = daysLeft(a.loss);
-    var rs = ROUTES.filter(function(r){ return r.area===a.id; });
-    h += '<div class="card"><h2>'+esc(a.name)+'</h2>'+
-      '<div class="meta">'+esc(a.when)+' · '+esc(a.head)+'</div>'+
-      '<div class="chips"><span class="chip '+(dl<90?'warn':'hot')+'">'+dl+' days left to file</span>'+
-      '<span class="chip">'+rs.length+' route'+(rs.length>1?'s':'')+'</span>'+
-      '<span class="chip">'+esc(a.zips.split('·').length)+' ZIPs on the board</span></div>'+
-      '<p>'+esc(a.blurb)+'</p>'+
-      '<p class="src">'+esc(a.zips)+'<br>'+esc(a.score)+'</p>';
-    rs.forEach(function(r){
-      h += '<button class="routebtn" onclick="openRoute(\''+r.id+'\')">'+
-           '<span><b>'+esc(r.name)+'</b><small>'+esc(r.town)+' · '+r.streets.length+' streets</small></span>'+
-           '<span class="go">&rsaquo;</span></button>';
-    });
-    h += '</div>';
-  });
-  document.getElementById('areas').innerHTML = h;
-}
-
-/* ---------- parcels ---------- */
-function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
-
+/* ---------- the county records ---------- */
 function fetchParcels(r){
   var b = [r.center[1]-r.d, r.center[0]-r.d, r.center[1]+r.d, r.center[0]+r.d].join(',');
   var url = FDOR + '?' + qs({
     f:'json', where:"DOR_UC IN ('001','002')", geometry:b, geometryType:'esriGeometryEnvelope',
     inSR:'4326', spatialRel:'esriSpatialRelIntersects',
-    outFields:'PARCEL_ID,PHY_ADDR1,PHY_CITY,PHY_ZIPCD,ACT_YR_BLT,EFF_YR_BLT,JV,TOT_LVG_AR,OWN_NAME,DOR_UC,NO_RES_UNT',
+    outFields:'PARCEL_ID,PHY_ADDR1,PHY_CITY,PHY_ZIPCD,ACT_YR_BLT,EFF_YR_BLT,JV,TOT_LVG_AR,OWN_NAME,DOR_UC',
     returnCentroid:'true', returnGeometry:'false', outSR:'4326', resultRecordCount:'2000'
   });
   return fetch(url).then(function(x){ return x.json(); }).then(function(j){
@@ -488,12 +459,10 @@ function fetchParcels(r){
       var a=f.attributes, c=f.centroid||{};
       return { id:a.PARCEL_ID, ad:(a.PHY_ADDR1||'').trim(), city:(a.PHY_CITY||'').trim(),
                zip:(a.PHY_ZIPCD||''), yr:a.ACT_YR_BLT||a.EFF_YR_BLT||0, jv:a.JV||0,
-               sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), uc:a.DOR_UC,
-               lat:c.y, lon:c.x };
+               sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), lat:c.y, lon:c.x };
     }).filter(function(p){ return p.lat && p.ad; });
   });
 }
-
 function cacheGet(id){
   try{ var v = JSON.parse(localStorage.getItem('sb:p:'+id)||'null');
        if(v && (Date.now()-v.t) < 30*86400000) return v.rows; }catch(e){}
@@ -501,12 +470,8 @@ function cacheGet(id){
 }
 function cacheSet(id, rows){ try{ localStorage.setItem('sb:p:'+id, JSON.stringify({t:Date.now(), rows:rows})); }catch(e){} }
 
-/* order the walk: streets in the order the route lists them, house numbers
-   up one street and back down the next, so you are never crossing twice. */
+/* ---------- the walk: streets in order, chained corner to corner ---------- */
 function orderDoors(rows, r){
-  /* group the doors into streets, then chain the streets nearest-end to
-     nearest-end so the walk never crosses itself. House numbers run up one
-     street and back down the next. */
   var groups = [];
   r.streets.forEach(function(st){
     var on = rows.filter(function(p){
@@ -523,8 +488,7 @@ function orderDoors(rows, r){
   while(left.length){
     var end = out[out.length-1], bi = 0, bd = Infinity, flip = false;
     left.forEach(function(g, i){
-      var d1 = far(end, g[0]), d2 = far(end, g[g.length-1]);
-      var d = Math.min(d1, d2);
+      var d1 = far(end, g[0]), d2 = far(end, g[g.length-1]), d = Math.min(d1, d2);
       if(d < bd){ bd = d; bi = i; flip = d2 < d1; }
     });
     var g = left.splice(bi,1)[0];
@@ -534,22 +498,15 @@ function orderDoors(rows, r){
   return out;
 }
 
-/* ---------- blocks: one afternoon at a time ----------
-   A street list of 583 doors is not a plan, it is a guilt trip. Cut the
-   ordered walk into blocks of about 120 doors, breaking at a street corner
-   wherever the count allows. */
-var HOURS = 4;                 /* 3:30pm to dusk, which is what a knock day is */
+/* ---------- blocks: one afternoon at this street's pace ---------- */
+var HOURS = 4;
 function blockTarget(r){ return Math.round((r.pace||13) * HOURS); }
 function makeBlocks(d, target){
   if(d.length <= target*1.25) return [d];
   var n = Math.ceil(d.length/target), size = Math.round(d.length/n);
   function stOf(p){ return p.ad.slice(p.ad.indexOf(' ')+1); }
-  /* where one street ends and the next begins */
   var corners = [];
   for(var i=1; i<d.length; i++){ if(stOf(d[i]) !== stOf(d[i-1])) corners.push(i); }
-  /* cut at every ideal position, but slide the cut to a street corner when
-     one is close enough — a block that ends at a corner is a block you can
-     see the end of */
   var cuts = [], prev = 0;
   for(var j=1; j<n; j++){
     var ideal = Math.round(j*size), best = ideal, bd = size*0.35;
@@ -564,7 +521,6 @@ function makeBlocks(d, target){
   out.push(d.slice(from));
   return out.filter(function(b){ return b.length; });
 }
-
 function blockName(b){
   var a = b[0].ad.slice(b[0].ad.indexOf(' ')+1);
   var z = b[b.length-1].ad.slice(b[b.length-1].ad.indexOf(' ')+1);
@@ -574,18 +530,24 @@ function vis(){ return (S.blocks && S.blocks.length > 1) ? S.blocks[S.bi] : S.do
 function setBlock(i){
   S.bi = i;
   try{ localStorage.setItem('sb:b:'+S.route.id, i); }catch(e){}
-  renderDoors(); renderSheet(); paintMap();
-  window.scrollTo(0,0);
+  renderRoute(); paintMap();
+  document.getElementById('sheetbody').scrollTop = 0;
 }
 
-/* ---------- when it gets dark ----------
-   Standard sunrise/sunset algorithm (US Naval Observatory), zenith 90.833.
-   No library, no network — the phone already knows the date. */
+/* ---------- marks ---------- */
+function markOf(id, rid){ try{ return localStorage.getItem('sb:m:'+(rid||S.route.id)+':'+id)||''; }catch(e){ return ''; } }
+function setMark(id, v){
+  try{
+    var k = 'sb:m:'+S.route.id+':'+id;
+    if(markOf(id)===v) localStorage.removeItem(k); else localStorage.setItem(k, v);
+  }catch(e){}
+  renderRoute(); paintMap();
+}
+
+/* ---------- when it gets dark (USNO algorithm, no network) ---------- */
 function sunsetAt(lat, lon, when){
-  var rad = Math.PI/180;
-  var start = new Date(when.getFullYear(), 0, 0);
-  var day = Math.floor((when - start)/86400000);
-  var lngHour = lon/15;
+  var rad = Math.PI/180, start = new Date(when.getFullYear(), 0, 0);
+  var day = Math.floor((when - start)/86400000), lngHour = lon/15;
   var t = day + ((18 - lngHour)/24);
   var M = (0.9856*t) - 3.289;
   var L = M + (1.916*Math.sin(M*rad)) + (0.020*Math.sin(2*M*rad)) + 282.634; L = (L+360)%360;
@@ -594,8 +556,7 @@ function sunsetAt(lat, lon, when){
   var sinDec = 0.39782*Math.sin(L*rad), cosDec = Math.cos(Math.asin(sinDec));
   var cosH = (Math.cos(90.833*rad) - (sinDec*Math.sin(lat*rad))) / (cosDec*Math.cos(lat*rad));
   if(cosH > 1 || cosH < -1) return null;
-  var H = (Math.acos(cosH)/rad)/15;
-  var T = H + RA - (0.06571*t) - 6.622;
+  var H = (Math.acos(cosH)/rad)/15, T = H + RA - (0.06571*t) - 6.622;
   var UT = ((T - lngHour) % 24 + 24) % 24;
   var out = new Date(when.getTime());
   out.setUTCHours(Math.floor(UT), Math.round((UT % 1)*60), 0, 0);
@@ -608,61 +569,45 @@ function clock(d){
   return h + ':' + (m<10?'0':'') + m + ap;
 }
 function addMin(d, mins){ return new Date(d.getTime() + mins*60000); }
-function miles(a, b){
-  var dx = (a[0]-b[0])*69, dy = (a[1]-b[1])*60.6;
-  return Math.sqrt(dx*dx + dy*dy);
-}
+function miles(a, b){ var dx=(a[0]-b[0])*69, dy=(a[1]-b[1])*60.6; return Math.sqrt(dx*dx+dy*dy); }
 function blockCentre(b){
   var la=0, lo=0, n=0;
   b.forEach(function(p){ if(p.lat){ la+=p.lat; lo+=p.lon; n++; } });
   return n ? [la/n, lo/n] : S.route.center;
 }
-/* the afternoon, in plain times */
 function plan(b){
   var r = S.route, pace = r.pace || 13;
   var left = b.filter(function(p){ return !markOf(p.id); }).length;
   var now = new Date(), start = new Date(); start.setHours(15,30,0,0);
-  if(now > start){                       /* already out — plan from right now */
-    start = new Date(Math.ceil(now.getTime()/300000)*300000);
-  }
+  if(now > start) start = new Date(Math.ceil(now.getTime()/300000)*300000);
   var dark = sunsetAt(r.center[0], r.center[1], new Date());
   var lastKnock = dark ? addMin(dark, -15) : null;
-  var mins = Math.round(left/pace*60);
-  var end = addMin(start, mins);
-  var road = miles(YARD, blockCentre(b)) * 1.3;
-  var drive = Math.round(road/45*60) + 8;
-  return { pace:pace, left:left, start:start, dark:dark, lastKnock:lastKnock,
-           mins:mins, end:end, road:road, drive:drive,
-           fits: lastKnock ? end <= lastKnock : true,
+  var mins = Math.round(left/pace*60), end = addMin(start, mins);
+  var road = miles(YARD, blockCentre(b)) * 1.3, drive = Math.round(road/45*60) + 8;
+  return { pace:pace, left:left, start:start, dark:dark, lastKnock:lastKnock, mins:mins, end:end,
+           road:road, drive:drive, fits: lastKnock ? end <= lastKnock : true,
            over: lastKnock ? Math.max(0, Math.round((end - lastKnock)/60000)) : 0 };
 }
 
-/* ---------- marks ---------- */
-function markOf(id){ try{ return localStorage.getItem('sb:m:'+S.route.id+':'+id)||''; }catch(e){ return ''; } }
-function setMark(id, v){
-  try{
-    var k='sb:m:'+S.route.id+':'+id;
-    if(markOf(id)===v) localStorage.removeItem(k); else localStorage.setItem(k, v);
-  }catch(e){}
-  renderDoors(); paintMap();
+/* ---------- modes ---------- */
+function goOverview(){
+  S.mode = 'overview'; S.route = null; S.doors = []; S.blocks = []; S.bi = 0;
+  document.getElementById('backbtn').style.display = 'none';
+  document.getElementById('tb-title').innerHTML = '<b>The Street Book</b><small>Covenant Builders &middot; where the storm hit</small>';
+  renderFilters(); renderOverview(); paintMap(); snap('half');
 }
-
-/* ---------- route ---------- */
-function openRoute(id){
+function focusRoute(id){
   S.route = ROUTES.filter(function(r){ return r.id===id; })[0];
-  S.doors = []; S.blocks = []; S.bi = 0;
+  S.mode = 'route'; S.doors = []; S.blocks = []; S.bi = 0; S.tab = 'doors';
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
-  document.getElementById('home').style.display='none';
-  document.getElementById('route').style.display='block';
-  document.getElementById('rname').textContent = S.route.name;
-  document.getElementById('rsub').textContent = S.route.town + ' · ' + a.when + ' · ' + daysLeft(a.loss) + ' days to file';
-  window.scrollTo(0,0);
-  tab('doors');
-  document.getElementById('p-doors').innerHTML = '<div class="loading">Pulling the county records for these streets…</div>';
-  renderArea(); renderSay();
-  buildMap();
+  document.getElementById('backbtn').style.display = 'block';
+  document.getElementById('tb-title').innerHTML =
+    '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(a.loss)+' days to file</small>';
+  S.map.flyTo(S.route.center, 15, { duration:.6 });
+  snap('half');
   var cached = cacheGet(S.route.id);
   if(cached){ S.doors = orderDoors(cached, S.route); afterLoad(); }
+  else { document.getElementById('sheetbody').innerHTML = '<div class="loading">Pulling the county records for these streets…</div>'; renderRouteHead(); }
   load();
 }
 function load(){
@@ -672,10 +617,10 @@ function load(){
     afterLoad();
   }).catch(function(e){
     if(!S.doors.length){
-      document.getElementById('p-doors').innerHTML =
-       '<div class="warnbox"><h3>The record service did not answer</h3><p>'+esc(e.message)+
-       '</p><p>You need a signal for the first load on a route. After that it is saved on this phone.</p>'+
-       '<button class="btn" onclick="load()">Try again</button></div>';
+      document.getElementById('sheetbody').innerHTML =
+        '<div class="warn"><b>The record service did not answer.</b><br>'+esc(e.message)+
+        '<br><br>You need a signal the first time you open a route. After that it is saved on this phone.</div>'+
+        '<button class="btn prime" onclick="load()">Try again</button>';
     }
   });
 }
@@ -685,214 +630,53 @@ function afterLoad(){
   var want = 0;
   try{ want = parseInt(localStorage.getItem('sb:b:'+S.route.id),10) || 0; }catch(e){}
   S.bi = Math.max(0, Math.min(want, S.blocks.length-1));
-  renderDoors(); renderSheet(); paintMap();
-}
-function goHome(){
-  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; }
-  document.getElementById('route').style.display='none';
-  document.getElementById('home').style.display='block';
-  window.scrollTo(0,0);
-}
-function tab(p){
-  ['doors','area','say'].forEach(function(x){
-    document.getElementById('p-'+x).className = 'pane' + (x===p?' on':'');
-  });
-  var ts = document.querySelectorAll('.tab');
-  for(var i=0;i<ts.length;i++){ ts[i].className = 'tab' + (ts[i].getAttribute('data-p')===p?' on':''); }
-  if(p==='doors' && S.map) setTimeout(function(){ S.map.invalidateSize(); }, 50);
-}
-</script>
-<script>
-/* ---------- the map ---------- */
-function naipLayer(){
-  var L2 = L.TileLayer.extend({
-    getTileUrl: function(coords){
-      var size = this.getTileSize(),
-          nw = coords.scaleBy(size),
-          se = nw.add(size),
-          p1 = this._map.unproject(nw, coords.z),
-          p2 = this._map.unproject(se, coords.z),
-          a = L.Projection.SphericalMercator.project(p1),
-          b = L.Projection.SphericalMercator.project(p2);
-      /* SphericalMercator.project already returns metres — do not scale again */
-      var bbox = [a.x, b.y, b.x, a.y].join(',');
-      return NAIP + '?' + qs({ bbox:bbox, bboxSR:'3857', imageSR:'3857',
-        size:'256,256', format:'jpgpng', f:'image' });
-    }
-  });
-  return new L2('', { maxZoom:20, attribution:'Aerial photo: USDA NAIP via USGS — public domain' });
+  renderRoute(); paintMap();
 }
 
-function buildMap(){
-  if(S.map){ S.map.remove(); S.map = null; }
-  var r = S.route;
-  S.map = L.map('map', { zoomControl:true, tap:true }).setView(r.center, 16);
-  var naip = naipLayer().addTo(S.map);
-  var esri = L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar Geographics' });
-  var osm  = L.tileLayer(OSM,  { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' });
-  L.control.layers({ 'Aerial (USGS NAIP)':naip, 'Aerial (Esri)':esri, 'Street names':osm }, null, {collapsed:true}).addTo(S.map);
-  S.layer = L.layerGroup().addTo(S.map);
-  /* the storm reports themselves */
-  var a = AREAS.filter(function(x){ return x.id===r.area; })[0];
-  a.reports.forEach(function(rep){
-    L.circleMarker([rep.lat, rep.lon], { radius:11, color:'#d4a24c', weight:2, fillColor:'#d4a24c', fillOpacity:.15 })
-     .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)+
-                '<br><span style="color:#9aa3b8">Reported to the National Weather Service. The dot is where the report was placed, not the only place it fell.</span>')
-     .addTo(S.map);
+/* ---------- the sheet slides like a maps app ---------- */
+function snap(state){
+  var el = document.getElementById('sheet');
+  el.className = state === 'full' ? 'full' : (state === 'half' ? 'half' : '');
+  S.snap = state;
+}
+function initSheet(){
+  var el = document.getElementById('sheet'), grab = document.getElementById('grab');
+  var y0 = null, t0 = 0;
+  grab.addEventListener('pointerdown', function(e){ y0 = e.clientY; t0 = Date.now(); grab.setPointerCapture(e.pointerId); });
+  grab.addEventListener('pointerup', function(e){
+    if(y0 === null) return;
+    var dy = e.clientY - y0, quick = (Date.now()-t0) < 400;
+    y0 = null;
+    if(dy < -30 || (quick && dy < -8)) snap(S.snap === 'half' ? 'full' : (S.snap === 'full' ? 'full' : 'half'));
+    else if(dy > 30) snap(S.snap === 'full' ? 'half' : 'peek');
+    else snap(S.snap === 'full' ? 'half' : 'full');
   });
 }
 
-function paintMap(){
-  if(!S.map || !S.layer) return;
-  S.layer.clearLayers();
-  var pts = [], shown = vis();
-  shown.forEach(function(p, i){
-    if(!p.lat) return;
-    pts.push([p.lat, p.lon]);
-    var m = markOf(p.id), e = era(p.yr);
-    var mk = L.circleMarker([p.lat, p.lon], {
-      radius: m ? 8 : 6,
-      color: m==='k' ? '#6a9a6f' : (m ? '#e9e7e2' : '#12182B'),
-      weight: m ? 2 : 1, opacity:1,
-      fillColor: ERA_COLOR[e], fillOpacity: m==='n' ? .35 : .95
-    });
-    mk.bindPopup(function(){
-      return '<b>'+esc(p.ad)+'</b><br>'+
-        '<span style="color:#c4a574">Door '+(i+1)+' of '+shown.length+(S.blocks.length>1?' \u00b7 block '+(S.bi+1):'')+'</span><br>'+
-        'Built '+(p.yr||'—')+' · '+(p.sf?p.sf+' sq ft':'')+'<br>'+
-        'Owner of record: '+esc(p.own||'—')+'<br>'+
-        '<span style="color:#9aa3b8;font-size:11.5px">Florida Dept. of Revenue 2025 roll. House age, not roof age.</span><br>'+
-        '<button class="btn" style="margin-top:6px" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button> '+
-        '<button class="btn" style="margin-top:6px" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>';
-    });
-    S.layer.addLayer(mk);
+/* ---------- the walk list, as a file ---------- */
+function csvOf(rows, label){
+  var out = ['Name,Address,City,Owner of record,Year built,Block,Status'];
+  rows.forEach(function(p){
+    var m = markOf(p.id);
+    var st = m==='k' ? 'Knocked' : m==='n' ? 'Not home' : m==='l' ? 'LEAD' : '';
+    out.push([p.ad, p.ad+', '+(p.city||'')+' FL '+(p.zip||''), p.city||'', p.own||'', p.yr||'', label, st]
+      .map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(','));
   });
-  if(pts.length){
-    S.layer.addLayer(L.polyline(pts, { color:'#c4a574', weight:3, opacity:.75 }));
-    setTimeout(function(){
-      try{ S.map.invalidateSize(); S.map.fitBounds(L.latLngBounds(pts).pad(0.10)); }catch(e){}
-    }, 150);
-  }
+  return out.join('\n');
 }
-
-function locateMe(){
-  if(!navigator.geolocation){ alert('This phone will not give a location to the page.'); return; }
-  var btn = document.getElementById('gpsbtn');
-  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; btn.textContent='Where am I';
-               if(S.gps){ S.map.removeLayer(S.gps); S.gps=null; } return; }
-  btn.textContent='Finding you…';
-  S.watch = navigator.geolocation.watchPosition(function(pos){
-    var ll = [pos.coords.latitude, pos.coords.longitude];
-    if(!S.gps){
-      S.gps = L.layerGroup().addTo(S.map);
-    }
-    S.gps.clearLayers();
-    S.gps.addLayer(L.circleMarker(ll, { radius:7, color:'#fff', weight:2, fillColor:'#4a90d9', fillOpacity:1 }));
-    S.gps.addLayer(L.circle(ll, { radius: pos.coords.accuracy||30, color:'#4a90d9', weight:1, fillOpacity:.08 }));
-    btn.textContent = nearestDoor(ll);
-  }, function(err){ btn.textContent = 'No location'; }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
+function downloadCsv(all){
+  var rows = all ? S.doors : vis();
+  var label = all ? S.route.name : 'Block '+(S.bi+1);
+  var name = S.route.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() + (all?'-all':'-block'+(S.bi+1)) + '.csv';
+  var blob = new Blob([csvOf(rows, label)], { type:'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
-function nearestDoor(ll){
-  var best=null, bd=1e9;
-  vis().forEach(function(p,i){
-    if(!p.lat) return;
-    var dx=(p.lat-ll[0])*111320, dy=(p.lon-ll[1])*98000, d=Math.sqrt(dx*dx+dy*dy);
-    if(d<bd){ bd=d; best=i; }
-  });
-  if(best===null) return 'Located';
-  return 'Nearest: door '+(best+1)+' ('+Math.round(bd*3.28)+' ft)';
-}
-
-function openDrive(){
-  var pts = vis().filter(function(p){ return p.lat; });
-  if(!pts.length){ alert('No doors loaded yet.'); return; }
-  var picks = [];
-  var step = Math.max(1, Math.floor(pts.length/8));
-  for(var i=0; i<pts.length && picks.length<8; i+=step) picks.push(pts[i]);
-  var dest = pts[pts.length-1];
-  var url = 'https://www.google.com/maps/dir/?' + qs({
-    api:'1', destination: dest.lat+','+dest.lon, travelmode:'driving',
-    waypoints: picks.map(function(p){ return p.lat+','+p.lon; }).join('|')
-  });
-  window.open(url, '_blank', 'noopener');
-}
-</script>
-<script>
-/* ---------- doors ---------- */
-function renderDoors(){
-  var r = S.route, d = vis();
-  if(!d.length){ return; }
-  var yrs = d.map(function(p){ return p.yr; }).filter(function(y){ return y>1900; }).sort();
-  var med = yrs.length ? yrs[Math.floor(yrs.length/2)] : 0;
-  var jvs = d.map(function(p){ return p.jv; }).filter(function(v){ return v>0; }).sort(function(a,b){return a-b;});
-  var mjv = jvs.length ? jvs[Math.floor(jvs.length/2)] : 0;
-  var k=0,n=0;
-  d.forEach(function(p){ var m=markOf(p.id); if(m==='k')k++; if(m==='n')n++; });
-
-  var h = '<div class="okbox"><b>Why this street.</b> '+esc(r.why)+'<br><br><b>Parking.</b> '+r.park+'</div>';
-
-  var pl = plan(d);
-  if(S.blocks.length > 1){
-    var walked = 0;
-    S.doors.forEach(function(p){ if(markOf(p.id)) walked++; });
-    h += '<h3>The afternoon</h3>'+
-         '<p class="note">'+S.doors.length+' doors on this route, cut into '+S.blocks.length+
-         ' blocks. A block is <b>one afternoon at this street\u2019s pace</b> \u2014 about '+
-         pl.pace+' doors an hour here. '+esc(S.route.paceWhy||'')+' '+walked+' of '+
-         S.doors.length+' marked so far.</p><div class="chips">';
-    S.blocks.forEach(function(b,i){
-      var done=0; b.forEach(function(p){ if(markOf(p.id)) done++; });
-      h += '<button class="chip'+(i===S.bi?' hot':'')+'" style="cursor:pointer" onclick="setBlock('+i+')">'+
-           (i===S.bi?'&#9656; ':'')+'Block '+(i+1)+' &middot; '+b.length+' doors'+
-           (done?' &middot; '+done+' done':'')+'</button>';
-    });
-    h += '</div>';
-  }
-  h += '<div class="okbox"><b>Block '+(S.bi+1)+(S.blocks.length>1?' of '+S.blocks.length:'')+
-       (S.blocks.length>1?' \u2014 '+esc(blockName(d)):'')+'.</b><br>'+
-       'Leave the yard about <b>'+clock(addMin(pl.start, -pl.drive))+'</b> \u2014 '+
-       Math.round(pl.road)+' road miles, call it '+pl.drive+' minutes.<br>'+
-       'Knock <b>'+clock(pl.start)+'</b> to <b>'+clock(pl.end)+'</b> for the '+pl.left+
-       ' doors still unmarked, at '+pl.pace+' an hour.<br>'+
-       'Sun goes down <b>'+clock(pl.dark)+'</b>. Last knock <b>'+clock(pl.lastKnock)+'</b> \u2014 after that you are the guy knocking in the dark.<br>'+
-       'Halfway (door '+Math.ceil(pl.left/2)+') by <b>'+clock(addMin(pl.start, Math.round(pl.mins/2)))+'</b>. '+
-       (pl.fits ? 'This block fits the daylight.' :
-        '<b style="color:#e79a94">This block runs '+pl.over+' minutes past dark.</b> Take what you get and finish it next time \u2014 do not chase it.')+
-       '</div>';
-  h += '<p class="note">Those times are a <b>model</b>, not a measurement \u2014 nobody has ever timed a Covenant door. Walk one block, tell me the real number, and every plan in this book gets honest.</p>';
-  h += '<div class="chips">'+
-       '<span class="chip">'+d.length+' doors'+(S.blocks.length>1?' in this block':'')+'</span>'+
-       '<span class="chip">median built '+(med||'\u2014')+'</span>'+
-       '<span class="chip">typical county value $'+(mjv?mjv.toLocaleString():'\u2014')+'</span>'+
-       '<span class="chip hot">'+k+' knocked</span>'+
-       '<span class="chip">'+n+' not home</span></div>';
-  h += '<div class="legend">';
-  ERA_NAME.forEach(function(nm,i){ h += '<span><i class="dot" style="background:'+ERA_COLOR[i]+'"></i>'+nm+'</span>'; });
-  h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll \u2014 public record, and the same book the property appraiser publishes. It is the age of the <b>house</b>. The roof can be any age. Use it to pick a street, never to tell a homeowner what they have.</p>';
-
-  var last='';
-  d.forEach(function(p,i){
-    var stName = p.ad.slice(p.ad.indexOf(' ')+1);
-    if(stName !== last){ h += '<h3>'+esc(stName)+'</h3>'; last = stName; }
-    var m = markOf(p.id), e = era(p.yr);
-    h += '<div class="door">'+
-      '<span class="n">'+(i+1)+'</span>'+
-      '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'\u2014')+(p.sf?' \u00b7 '+p.sf+' sq ft':'')+'</small></span>'+
-      '<span class="yr y'+e+'">'+(p.yr||'\u2014')+'</span>'+
-      '<span class="mk">'+
-        '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
-        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">\u2014</button>'+
-        '<button class="'+(m==='l'?'on':'')+'" title="Lead \u2014 name and number" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
-      '</span></div>';
-  });
-  h += '<p class="note">K = somebody answered. \u2014 = nobody home, leave the card. L = you got a name and a number; that one becomes a CRM row inside two days.</p>';
-  h += '<button class="btn" onclick="copyLeads()">Copy the leads and the knocks</button>';
-  document.getElementById('p-doors').innerHTML = h;
-}
-
 function copyLeads(){
   var out = [S.route.name+' — '+S.route.town+' — '+new Date().toDateString(), ''];
-  S.doors.forEach(function(p,i){
+  S.doors.forEach(function(p){
     var m = markOf(p.id);
     if(!m) return;
     out.push((m==='k'?'KNOCKED':(m==='l'?'LEAD':'NOT HOME'))+'\t'+p.ad+'\t'+(p.own||'')+'\tbuilt '+(p.yr||''));
@@ -900,83 +684,388 @@ function copyLeads(){
   if(out.length===2) out.push('Nothing marked yet.');
   var t = out.join('\n');
   if(navigator.clipboard){ navigator.clipboard.writeText(t); alert('Copied. Paste it into the CRM or an email.'); }
-  else { prompt('Copy this:', t); }
+  else prompt('Copy this:', t);
+}
+</script>
+<script>
+/* ============================================================
+   The map. It is the app, not a picture inside the app.
+   ============================================================ */
+var BASES = {};
+function naipLayer(){
+  var L2 = L.TileLayer.extend({
+    getTileUrl: function(coords){
+      var size = this.getTileSize(),
+          nw = coords.scaleBy(size), se = nw.add(size),
+          a = L.Projection.SphericalMercator.project(this._map.unproject(nw, coords.z)),
+          b = L.Projection.SphericalMercator.project(this._map.unproject(se, coords.z));
+      return NAIP + '?' + qs({ bbox:[a.x,b.y,b.x,a.y].join(','), bboxSR:'3857', imageSR:'3857',
+        size:'256,256', format:'jpgpng', f:'image' });
+    }
+  });
+  return new L2('', { maxZoom:20, maxNativeZoom:20, attribution:'Aerial: USDA NAIP via USGS — public domain' });
+}
+function buildBases(){
+  BASES.map = L.tileLayer(CARTO, { maxZoom:20, attribution:'&copy; OpenStreetMap, &copy; CARTO' });
+  BASES.sat = L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar' });
+  BASES.naip = naipLayer();
+  BASES.hyb = L.layerGroup([
+    L.tileLayer(ESRI, { maxZoom:20, attribution:'Imagery: Esri, Maxar, Earthstar' }),
+    L.tileLayer(ESRILAB, { maxZoom:20, opacity:0.95 })
+  ]);
+}
+function setBase(k){
+  if(S.base && BASES[S.base]) S.map.removeLayer(BASES[S.base]);
+  S.base = k;
+  BASES[k].addTo(S.map);
+  if(BASES[k].bringToBack) BASES[k].bringToBack();
+  try{ localStorage.setItem('sb:base', k); }catch(e){}
+  var bs = document.querySelectorAll('#layers button');
+  for(var i=0;i<bs.length;i++) bs[i].className = bs[i].getAttribute('data-b')===k ? 'on' : '';
+  document.getElementById('layers').style.display = 'none';
+}
+function toggleLayers(){
+  var el = document.getElementById('layers');
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
 }
 
-/* ---------- the area ---------- */
+function buildMap(){
+  S.map = L.map('map', { zoomControl:false, attributionControl:true, tap:true, zoomSnap:0.5 })
+           .setView([27.95,-80.60], 10);
+  buildBases();
+  var want = 'map';
+  try{ want = localStorage.getItem('sb:base') || 'map'; }catch(e){}
+  setBase(BASES[want] ? want : 'map');
+  L.control.scale({ imperial:true, metric:false, position:'bottomleft' }).addTo(S.map);
+  S.over = L.layerGroup().addTo(S.map);   /* everything in overview */
+  S.layer = L.layerGroup().addTo(S.map);  /* the open route */
+  S.gps = L.layerGroup().addTo(S.map);
+}
+
+/* ---------- overview: every route on one map ---------- */
+function paintOverview(){
+  S.over.clearLayers(); S.layer.clearLayers();
+  var pts = [];
+  AREAS.forEach(function(a){
+    if(S.area !== 'all' && S.area !== a.id) return;
+    a.reports.forEach(function(rep){
+      pts.push([rep.lat, rep.lon]);
+      S.over.addLayer(L.circle([rep.lat, rep.lon], { radius:11265, color:'#d4a24c', weight:1,
+        fillColor:'#d4a24c', fillOpacity:.07 }));   /* the 7-mile knock radius */
+      S.over.addLayer(L.marker([rep.lat, rep.lon], { icon:L.divIcon({ className:'', iconSize:null,
+        html:'<div class="stormpin">'+esc(rep.mag)+'</div>' }) })
+        .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)));
+    });
+  });
+  ROUTES.forEach(function(r){
+    if(S.area !== 'all' && S.area !== r.area) return;
+    pts.push(r.center);
+    var cached = cacheGet(r.id);
+    var n = cached ? orderDoors(cached, r).length : 0;
+    var done = 0;
+    if(cached) orderDoors(cached, r).forEach(function(p){ if(markOf(p.id, r.id)) done++; });
+    S.over.addLayer(L.marker(r.center, { icon:L.divIcon({ className:'', iconSize:null,
+      html:'<div class="pin'+(r.area==='fp'?' fp':'')+'">'+esc(r.name)+
+           '<small>'+(n? n+' doors'+(done?' &middot; '+done+' done':'') : 'tap to load')+'</small></div>' }) })
+      .on('click', function(){ focusRoute(r.id); }));
+    if(cached){
+      var line = orderDoors(cached, r).filter(function(p){ return p.lat; }).map(function(p){ return [p.lat,p.lon]; });
+      if(line.length) S.over.addLayer(L.polyline(line, { color:'#12182B', weight:2.5, opacity:.55 }));
+    }
+  });
+  S.over.addLayer(L.marker(YARD, { icon:L.divIcon({ className:'', iconSize:null,
+    html:'<div class="yardpin">The yard &middot; Vero Beach</div>' }) }));
+  pts.push(YARD);
+  if(pts.length) try{ S.map.fitBounds(L.latLngBounds(pts).pad(0.12), { animate:false }); }catch(e){}
+}
+
+/* ---------- one route, its doors ---------- */
+function paintRoute(){
+  S.over.clearLayers(); S.layer.clearLayers();
+  var shown = vis(), pts = [];
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
+  a.reports.forEach(function(rep){
+    S.layer.addLayer(L.marker([rep.lat, rep.lon], { icon:L.divIcon({ className:'', iconSize:null,
+      html:'<div class="stormpin">'+esc(rep.mag)+'</div>' }) })
+      .bindPopup('<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)));
+  });
+  shown.forEach(function(p, i){
+    if(!p.lat) return;
+    pts.push([p.lat, p.lon]);
+    var m = markOf(p.id), e = era(p.yr);
+    S.layer.addLayer(L.circleMarker([p.lat, p.lon], {
+      radius: m ? 8 : 6,
+      color: m==='k' ? '#3f7d52' : (m==='l' ? '#12182B' : '#ffffff'),
+      weight: m ? 3 : 1.5, opacity:1,
+      fillColor: ERA_COLOR[e], fillOpacity: m==='n' ? .3 : .95
+    }).bindPopup(function(){
+      return '<b>'+esc(p.ad)+'</b><br>'+
+        '<span style="color:#5b667c">Door '+(i+1)+' of '+shown.length+
+        (S.blocks.length>1 ? ' &middot; block '+(S.bi+1) : '')+'</span><br>'+
+        'Built '+(p.yr||'—')+(p.sf?' &middot; '+p.sf+' sq ft':'')+'<br>'+
+        'Owner of record: '+esc(p.own||'—')+'<br>'+
+        '<button class="btn" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button>'+
+        '<button class="btn" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>'+
+        '<button class="btn" onclick="setMark(\''+p.id+'\',\'l\')">Lead</button>';
+    }));
+  });
+  if(pts.length){
+    S.layer.addLayer(L.polyline(pts, { color:'#12182B', weight:3, opacity:.8 }));
+    S.layer.addLayer(L.polyline(pts, { color:'#c4a574', weight:1.5, opacity:.9, dashArray:'6 8' }));
+    setTimeout(function(){
+      try{ S.map.invalidateSize(); S.map.flyToBounds(L.latLngBounds(pts).pad(0.14), { duration:.6 }); }catch(e){}
+    }, 150);
+  }
+}
+function paintMap(){ if(!S.map) return; if(S.mode==='route') paintRoute(); else paintOverview(); }
+
+/* ---------- where am I ---------- */
+function locateMe(){
+  if(!navigator.geolocation){ alert('This phone will not give the page a location.'); return; }
+  var btn = document.getElementById('gpsfab');
+  if(S.watch){ navigator.geolocation.clearWatch(S.watch); S.watch=null; S.gps.clearLayers();
+               btn.className='fab'; return; }
+  btn.className='fab on';
+  S.watch = navigator.geolocation.watchPosition(function(pos){
+    var ll = [pos.coords.latitude, pos.coords.longitude];
+    S.me = ll; S.gps.clearLayers();
+    S.gps.addLayer(L.circle(ll, { radius: pos.coords.accuracy||30, color:'#1a73e8', weight:1, fillOpacity:.10 }));
+    S.gps.addLayer(L.circleMarker(ll, { radius:7, color:'#fff', weight:3, fillColor:'#1a73e8', fillOpacity:1 }));
+    if(!S.centred){ S.centred = true; S.map.setView(ll, Math.max(S.map.getZoom(), 16)); }
+    if(S.mode==='route') renderRouteHead();
+  }, function(){ btn.className='fab'; }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
+}
+function nearestDoor(){
+  if(!S.me || !S.doors.length) return null;
+  var best=null, bd=1e9, list=vis();
+  list.forEach(function(p,i){
+    if(!p.lat) return;
+    var dx=(p.lat-S.me[0])*364000, dy=(p.lon-S.me[1])*322000, d=Math.sqrt(dx*dx+dy*dy);
+    if(d<bd){ bd=d; best={i:i, p:p, ft:Math.round(d)}; }
+  });
+  return best;
+}
+function openDrive(){
+  var pts = vis().filter(function(p){ return p.lat; });
+  if(!pts.length){ alert('No doors loaded yet.'); return; }
+  var picks = [], step = Math.max(1, Math.floor(pts.length/8));
+  for(var i=0; i<pts.length && picks.length<8; i+=step) picks.push(pts[i]);
+  var dest = pts[pts.length-1];
+  window.open('https://www.google.com/maps/dir/?' + qs({
+    api:'1', destination: dest.lat+','+dest.lon, travelmode:'driving',
+    waypoints: picks.map(function(p){ return p.lat+','+p.lon; }).join('|')
+  }), '_blank', 'noopener');
+}
+</script>
+<script>
+/* ============================================================
+   What the sheet says
+   ============================================================ */
+function renderFilters(){
+  var h = '<button class="fchip'+(S.area==='all'?' on':'')+'" onclick="setArea(\'all\')">All 3 storms</button>';
+  AREAS.forEach(function(a){
+    h += '<button class="fchip'+(S.area===a.id?' on':'')+'" onclick="setArea(\''+a.id+'\')">'+esc(a.name)+'</button>';
+  });
+  document.getElementById('filters').innerHTML = h;
+}
+function setArea(id){ S.area = id; renderFilters(); renderOverview(); paintMap(); }
+
+/* ---------- overview sheet: the routes, nearest first ---------- */
+function renderOverview(){
+  var from = S.me || YARD, list = ROUTES.filter(function(r){ return S.area==='all' || S.area===r.area; });
+  list = list.map(function(r){ return { r:r, mi: miles(from, r.center)*1.3 }; })
+             .sort(function(a,b){ return a.mi - b.mi; });
+  var totalDoors = 0, totalMarks = 0;
+  ROUTES.forEach(function(r){
+    var c = cacheGet(r.id);
+    if(!c) return;
+    var d = orderDoors(c, r);
+    totalDoors += d.length;
+    d.forEach(function(p){ if(markOf(p.id, r.id)) totalMarks++; });
+  });
+
+  document.getElementById('sheethead').innerHTML =
+    '<h2 class="big">Where the storm hit</h2>'+
+    '<p class="sub">Ten walks across three storms. '+
+    (totalDoors ? totalDoors+' doors loaded, '+totalMarks+' marked.' : 'Tap a route to pull its doors.')+'</p>';
+
+  var h = '';
+  list.forEach(function(x){
+    var r = x.r, a = AREAS.filter(function(y){ return y.id===r.area; })[0];
+    var c = cacheGet(r.id), n = c ? orderDoors(c, r).length : 0;
+    var blocks = n ? makeBlocks(orderDoors(c, r), blockTarget(r)).length : 0;
+    var done = 0;
+    if(c) orderDoors(c, r).forEach(function(p){ if(markOf(p.id, r.id)) done++; });
+    h += '<button class="rowbtn" onclick="focusRoute(\''+r.id+'\')">'+
+      '<span class="rowdot" style="background:'+(r.area==='fp'?'#6b4f2a':(r.area==='hail'?'#12182B':'#3d4a6b'))+'">'+
+        Math.round(x.mi)+'<span style="font-size:8px">mi</span></span>'+
+      '<span class="rowtxt"><b>'+esc(r.name)+'</b>'+
+      '<small>'+esc(r.town)+' &middot; '+(n ? n+' doors &middot; '+blocks+' afternoon'+(blocks>1?'s':'')+(done?' &middot; '+done+' marked':'') : 'tap to load')+
+      ' &middot; '+daysLeft(a.loss)+'d to file</small></span>'+
+      '<span class="rowgo">&rsaquo;</span></button>';
+  });
+  h += '<h3 class="sec">Before you knock</h3>'+
+    '<div class="warn"><b>Florida wants a permit for cold doors.</b> A “home solicitation sale” needs a permit from the <b>Clerk of Court in that county</b> — F.S. 501.022. Brevard charges $100 plus a $24 background check and takes fingerprints. Contractors are not on the exemption list. <b>Invited visits are.</b></div>'+
+    '<ul>'+
+    '<li><b>You cannot sign a roof.</b> F.S. 489.113(3) makes a Certified Building Contractor subcontract roofing, and there is no approved roofer on the bench yet.</li>'+
+    '<li><b>Never say “you have damage”</b> before you have been on the roof, and never say what insurance will cover. The carrier decides.</li>'+
+    '<li><b>F.S. 489.147</b> — no paying or waiving deductibles, no gifts for signing, no referral money, no reading the policy for them.</li>'+
+    '</ul>'+
+    '<p class="src">Map: OpenStreetMap and CARTO · Imagery: Esri and USDA NAIP via USGS · Property records: Florida Department of Revenue 2025 tax roll · Storms: NWS local storm reports. All open access — no account, no key, no bill.</p>'+
+    '<p class="src"><b>Covenant Builders</b> · CBC1253676 · (772) 473-7115 · Hablamos español.</p>';
+  document.getElementById('sheetbody').innerHTML = h;
+}
+
+/* ---------- route sheet ---------- */
+function renderRouteHead(){
+  var r = S.route, d = vis(), near = nearestDoor();
+  var h = '<h2 class="big">'+esc(r.name)+'</h2>'+
+    '<p class="sub">'+esc(r.town)+(S.blocks.length>1 ? ' · block '+(S.bi+1)+' of '+S.blocks.length : '')+
+    (d.length ? ' · '+d.length+' doors' : '')+
+    (near ? ' · nearest door '+(near.i+1)+', '+near.ft+' ft' : '')+'</p>'+
+    '<div class="tabs">'+
+      '<button class="tab'+(S.tab==='doors'?' on':'')+'" data-p="doors" onclick="setTab(\'doors\')">Doors</button>'+
+      '<button class="tab'+(S.tab==='area'?' on':'')+'" data-p="area" onclick="setTab(\'area\')">The area</button>'+
+      '<button class="tab'+(S.tab==='say'?' on':'')+'" data-p="say" onclick="setTab(\'say\')">What to say</button>'+
+    '</div>';
+  document.getElementById('sheethead').innerHTML = h;
+}
+function setTab(t){ S.tab = t; renderRoute(); document.getElementById('sheetbody').scrollTop = 0; snap('full'); }
+function renderRoute(){
+  renderRouteHead();
+  var el = document.getElementById('sheetbody');
+  if(S.tab === 'area'){ el.innerHTML = areaHtml(); return; }
+  if(S.tab === 'say'){ el.innerHTML = sayHtml(); return; }
+  if(!S.doors.length){ el.innerHTML = '<div class="loading">Pulling the county records for these streets…</div>'; return; }
+
+  var r = S.route, d = vis(), pl = plan(d);
+  var yrs = d.map(function(p){ return p.yr; }).filter(function(y){ return y>1900; }).sort();
+  var med = yrs.length ? yrs[Math.floor(yrs.length/2)] : 0;
+  var jvs = d.map(function(p){ return p.jv; }).filter(function(v){ return v>0; }).sort(function(a,b){return a-b;});
+  var mjv = jvs.length ? jvs[Math.floor(jvs.length/2)] : 0;
+  var k=0,n=0; d.forEach(function(p){ var m=markOf(p.id); if(m==='k')k++; if(m==='n')n++; });
+
+  var h = '<button class="btn sand" onclick="openDrive()">Drive it in Google Maps</button>'+
+          '<button class="btn" onclick="printSheet(false)">Print this block</button>'+
+          '<button class="btn" onclick="printSheet(true)">Print every block</button>'+
+          '<button class="btn" onclick="downloadCsv(false)">Walk list file (CSV)</button>';
+
+  if(S.blocks.length > 1){
+    var walked = 0; S.doors.forEach(function(p){ if(markOf(p.id)) walked++; });
+    h += '<h3 class="sec">Afternoons on this route</h3>'+
+         '<p class="note">'+S.doors.length+' doors, cut into '+S.blocks.length+' blocks. A block is one afternoon at this street’s pace — about '+
+         pl.pace+' doors an hour here. '+esc(r.paceWhy||'')+' '+walked+' of '+S.doors.length+' marked so far.</p><div class="chips">';
+    S.blocks.forEach(function(b,i){
+      var done=0; b.forEach(function(p){ if(markOf(p.id)) done++; });
+      h += '<button class="chip'+(i===S.bi?' hot':'')+'" style="cursor:pointer" onclick="setBlock('+i+')">'+
+           (i===S.bi?'▸ ':'')+'Block '+(i+1)+' · '+b.length+(done?' · '+done+' done':'')+'</button>';
+    });
+    h += '</div>';
+  }
+  h += '<div class="plan"><b>Block '+(S.bi+1)+(S.blocks.length>1?' of '+S.blocks.length:'')+
+       (S.blocks.length>1?' — '+esc(blockName(d)):'')+'</b><br>'+
+       'Leave the yard about <b>'+clock(addMin(pl.start, -pl.drive))+'</b> — '+Math.round(pl.road)+' road miles, call it '+pl.drive+' minutes.<br>'+
+       'Knock <b>'+clock(pl.start)+'</b> to <b>'+clock(pl.end)+'</b> for the '+pl.left+' doors still unmarked, at '+pl.pace+' an hour.<br>'+
+       'Sun down <b>'+clock(pl.dark)+'</b> · last knock <b>'+clock(pl.lastKnock)+'</b>. Halfway by <b>'+clock(addMin(pl.start, Math.round(pl.mins/2)))+'</b>.<br>'+
+       (pl.fits ? 'This block fits the daylight.' :
+        '<b style="color:#8d3b35">This block runs '+pl.over+' minutes past dark.</b> Take what you get and finish it next time.')+
+       '</div>'+
+       '<p class="note">Those times are a <b>model</b>, not a measurement — nobody has timed a Covenant door yet. Walk one block, tell me the real number, and every plan here gets honest.</p>';
+
+  h += '<div class="plan" style="background:#f5f6f8;border-color:#e3e6ec"><b>Why this street.</b> '+esc(r.why)+
+       '<br><br><b>Parking.</b> '+r.park+'</div>';
+
+  h += '<div class="chips">'+
+       '<span class="chip">'+d.length+' doors'+(S.blocks.length>1?' in this block':'')+'</span>'+
+       '<span class="chip">median built '+(med||'—')+'</span>'+
+       '<span class="chip">typical value $'+(mjv?mjv.toLocaleString():'—')+'</span>'+
+       '<span class="chip hot">'+k+' knocked</span><span class="chip">'+n+' not home</span></div>'+
+       '<div class="legend">';
+  ERA_NAME.forEach(function(nm,i){ h += '<span><i class="dot" style="background:'+ERA_COLOR[i]+'"></i>'+nm+'</span>'; });
+  h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll — public record. It is the age of the <b>house</b>, not the roof. Use it to pick a street, never to tell a homeowner what they have.</p>';
+
+  var last = '';
+  d.forEach(function(p,i){
+    var stName = p.ad.slice(p.ad.indexOf(' ')+1);
+    if(stName !== last){ h += '<h3 class="sec">'+esc(stName)+'</h3>'; last = stName; }
+    var m = markOf(p.id), e = era(p.yr);
+    h += '<div class="door"><span class="n">'+(i+1)+'</span>'+
+      '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'—')+(p.sf?' · '+p.sf+' sq ft':'')+'</small></span>'+
+      '<span class="yr y'+e+'">'+(p.yr||'—')+'</span>'+
+      '<span class="mk">'+
+        '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
+        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
+        '<button class="'+(m==='l'?'on':'')+'" title="Lead" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
+      '</span></div>';
+  });
+  h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = a name and a number; that one becomes a CRM row inside two days.</p>'+
+       '<button class="btn prime" onclick="copyLeads()">Copy the leads and the knocks</button>'+
+       '<button class="btn" onclick="downloadCsv(true)">Whole route as a file</button>'+
+       '<button class="btn" onclick="reload()">Refresh records</button>';
+  el.innerHTML = h;
+}
+
+/* ---------- the area, the legends, the heroes ---------- */
 function block(title, rows){
   if(!rows || !rows.length) return '';
-  var h = '<h3>'+title+'</h3>';
+  var h = '<h3 class="sec">'+title+'</h3>';
   rows.forEach(function(x){
     h += '<p>'+x.t+' <span class="src">— <a href="'+x.s+'" target="_blank" rel="noopener">'+esc(x.sn)+'</a></span></p>';
   });
   return h;
 }
-function renderArea(){
-  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
-  var c = CONTENT[a.id];
-  var h = '<div class="card"><h2>'+esc(a.name)+'</h2><div class="meta">'+esc(a.when)+'</div><p>'+esc(a.blurb)+'</p>';
-  h += '<h3>What the weather service was told</h3>';
-  a.reports.forEach(function(r){
-    h += '<p><b>'+esc(r.mag)+'</b> · '+esc(r.t)+' — '+esc(r.txt)+'</p>';
-  });
-  h += '<p class="src">Source: NWS Local Storm Reports via the Iowa Environmental Mesonet archive, read 11 September 2026.</p></div>';
-  h += '<div class="card">'+block('The history', c.history)+block('The legends', c.legends)+
-       block('The local heroes', c.heroes)+block('What everybody knows', c.landmarks)+'</div>';
-  document.getElementById('p-area').innerHTML = h;
+function areaHtml(){
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0], c = CONTENT[a.id];
+  var h = '<h3 class="sec">'+esc(a.name)+' · '+esc(a.when)+'</h3><p>'+esc(a.blurb)+'</p>';
+  h += '<h3 class="sec">What the weather service was told</h3>';
+  a.reports.forEach(function(r){ h += '<p><b>'+esc(r.mag)+'</b> · '+esc(r.t)+' — '+esc(r.txt)+'</p>'; });
+  h += '<p class="src">NWS Local Storm Reports via the Iowa Environmental Mesonet archive, read 11 September 2026.</p>';
+  return h + block('The history', c.history) + block('The legends', c.legends) +
+         block('The local heroes', c.heroes) + block('What everybody knows', c.landmarks);
 }
-
-/* ---------- what to say ---------- */
-function renderSay(){
-  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
-  var c = CONTENT[a.id];
-  var h = '<div class="card"><h3>The knock</h3><ul>';
+function sayHtml(){
+  var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0], c = CONTENT[a.id];
+  var h = '<h3 class="sec">The knock</h3><ul>';
   SCRIPT_RULES.open.forEach(function(x){ h += '<li>'+x+'</li>'; });
-  h += '</ul><h3>Openers that belong to this town</h3><ul>';
+  h += '</ul><h3 class="sec">Openers that belong to this town</h3><ul>';
   c.openers.forEach(function(x){ h += '<li>'+esc(x)+'</li>'; });
-  h += '</ul><p class="note">Use one, then shut up. The point of a local line is that it is true and it is theirs — not that it is clever.</p></div>';
-  h += '<div class="warnbox"><h3>Never, on any door</h3><ul>';
+  h += '</ul><p class="note">Use one, then shut up. A local line works because it is true and it is theirs, not because it is clever.</p>';
+  h += '<div class="warn"><b>Never, on any door</b><ul>';
   SCRIPT_RULES.never.forEach(function(x){ h += '<li>'+x+'</li>'; });
-  h += '</ul></div>';
-  h += '<div class="card"><h3>En español</h3><ul>';
+  h += '</ul></div><h3 class="sec">En español</h3><ul>';
   SCRIPT_RULES.spanish.forEach(function(x){ h += '<li>'+esc(x)+'</li>'; });
-  h += '</ul><h3>When you walk away</h3><ul>';
+  h += '</ul><h3 class="sec">When you walk away</h3><ul>';
   SCRIPT_RULES.after.forEach(function(x){ h += '<li>'+x+'</li>'; });
-  h += '</ul></div>';
-  h += '<div class="warnbox"><h3>The permit</h3><p>Knocking a cold door to sell work is a “home solicitation sale” under Florida law. The permit comes from the <b>Clerk of Court in that county</b> — Brevard for every route but Fort Pierce, St. Lucie for that one — and a contractor is not on the exemption list. An invited visit is.</p>'+
-       '<p class="src"><a href="http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.022.html" target="_blank" rel="noopener">F.S. 501.022</a> · <a href="https://www.brevardclerk.us/home-solicitation-permit" target="_blank" rel="noopener">Brevard Clerk of Court</a></p></div>';
-  document.getElementById('p-say').innerHTML = h;
+  h += '</ul><div class="warn"><b>The permit.</b> Knocking a cold door to sell work is a “home solicitation sale”. The permit comes from the <b>Clerk of Court in that county</b> — Brevard for every route but Fort Pierce, St. Lucie for that one — and a contractor is not on the exemption list. An invited visit is.<br><span class="src"><a href="http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.022.html" target="_blank" rel="noopener">F.S. 501.022</a> · <a href="https://www.brevardclerk.us/home-solicitation-permit" target="_blank" rel="noopener">Brevard Clerk</a></span></div>';
+  return h;
 }
 
-/* ---------- printable walk sheet ---------- */
+/* ---------- paper ---------- */
 function sheetFor(b, i){
-  var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0];
-  var pl = plan(b);
-  var h = '<div class="pg"><h2>'+esc(r.name)+' \u2014 '+esc(r.town)+
-    (S.blocks.length>1 ? ' \u2014 block '+(i+1)+' of '+S.blocks.length : '')+'</h2>'+
-    '<p class="plan">'+esc(a.name)+' \u00b7 '+esc(a.when)+' \u00b7 '+daysLeft(a.loss)+
-    ' days left to file \u00b7 '+b.length+' doors \u00b7 '+pl.pace+' doors an hour \u00b7 knock '+
-    clock(pl.start)+' to '+clock(pl.end)+' \u00b7 dark at '+clock(pl.dark)+'</p>'+
-    '<p class="plan">Covenant Builders \u00b7 CBC1253676 \u00b7 (772) 473-7115 \u00b7 never say a roof has damage before you have been on it \u00b7 the carrier decides the claim</p>'+
-    '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knocked</th><th>Not home</th><th>Name / number / notes</th></tr>';
+  var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0], pl = plan(b);
+  var h = '<div class="pg"><h2>'+esc(r.name)+' — '+esc(r.town)+
+    (S.blocks.length>1 ? ' — block '+(i+1)+' of '+S.blocks.length : '')+'</h2>'+
+    '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(a.loss)+' days left to file · '+
+    b.length+' doors · '+pl.pace+' an hour · knock '+clock(pl.start)+' to '+clock(pl.end)+' · dark at '+clock(pl.dark)+'</p>'+
+    '<p class="pl">Covenant Builders · CBC1253676 · (772) 473-7115 · never say a roof has damage before you have been on it · the carrier decides the claim</p>'+
+    '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knock</th><th>Out</th><th>Name / number / notes</th></tr>';
   b.forEach(function(p,j){
     h += '<tr><td>'+(j+1)+'</td><td>'+esc(p.ad)+'</td><td>'+esc(p.own||'')+'</td><td>'+(p.yr||'')+'</td><td></td><td></td><td></td></tr>';
   });
-  return h + '</table><p class="plan">Owner and year: Florida Dept. of Revenue 2025 tax roll. House age, not roof age.</p></div>';
+  return h + '</table><p class="pl">Owner and year: Florida Dept. of Revenue 2025 tax roll. House age, not roof age.</p></div>';
 }
-function renderSheet(all){
+function renderPrint(all){
   var out = '';
-  if(all && S.blocks.length > 1){ S.blocks.forEach(function(b,i){ out += sheetFor(b,i); }); }
+  if(all && S.blocks.length > 1) S.blocks.forEach(function(b,i){ out += sheetFor(b,i); });
   else out = sheetFor(vis(), S.bi);
-  document.getElementById('sheet').innerHTML = out;
+  document.getElementById('print').innerHTML = out;
 }
-function printSheet(all){
-  renderSheet(all);
-  window.print();
-  setTimeout(function(){ renderSheet(false); }, 500);
-}
+function printSheet(all){ renderPrint(all); window.print(); }
 
-renderHome();
+/* ---------- go ---------- */
+buildMap();
+initSheet();
+goOverview();
 </script>
 </body>
 </html>
