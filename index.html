@@ -604,7 +604,7 @@ function focusRoute(id){
   document.getElementById('backbtn').style.display = 'block';
   document.getElementById('tb-title').innerHTML =
     '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(a.loss)+' days to file</small>';
-  if(S.map) S.map.flyTo({ center:[S.route.center[1], S.route.center[0]], zoom:14.5, duration:700 });
+  if(S.map) S.map.jumpTo({ center:[S.route.center[1], S.route.center[0]], zoom:14.5 });
   snap('half');
   var cached = cacheGet(S.route.id);
   if(cached){ S.doors = orderDoors(cached, S.route); afterLoad(); }
@@ -799,7 +799,9 @@ function fit(pts, pad){
   if(!pts.length) return;
   var w=180, s=90, e=-180, n=-90;
   pts.forEach(function(p){ w=Math.min(w,p[1]); e=Math.max(e,p[1]); s=Math.min(s,p[0]); n=Math.max(n,p[0]); });
-  try{ S.map.fitBounds([[w,s],[e,n]], { padding:{ top:110, bottom:Math.round(window.innerHeight*0.46), left:40, right:40 }, duration:600, maxZoom:17.5 }); }catch(e){}
+  /* duration 0 on purpose: an animated camera move stalls whenever the tab is
+     not in front, and a map that did not move is worse than one that jumped */
+  try{ S.map.fitBounds([[w,s],[e,n]], { padding:{ top:110, bottom:Math.round(window.innerHeight*0.46), left:40, right:40 }, duration:0, maxZoom:17.5 }); }catch(err){}
 }
 
 /* ---------- overview: every route on one map ---------- */
