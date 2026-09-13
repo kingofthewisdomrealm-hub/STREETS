@@ -497,7 +497,9 @@ var ESRI    = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imager
 var ESRILAB = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
 var S = { mode:'overview', area:'all', base:'map', route:null, doors:[], blocks:[], bi:0,
-          map:null, geo:null, styled:false, me:null, tab:'doors', snap:'half' };
+          map:null, geo:null, styled:false, me:null, tab:'doors', snap:'half',
+          /* skip doors that already got a new roof — on by default, remembered */
+          skipRR:(function(){ try{ return localStorage.getItem('sb:skiprr') !== '0'; }catch(e){ return true; } })() };
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
@@ -596,7 +598,12 @@ function blockName(b){
   var z = b[b.length-1].ad.slice(b[b.length-1].ad.indexOf(' ')+1);
   return a === z ? a : a + ' to ' + z;
 }
-function vis(){ return (S.blocks && S.blocks.length > 1) ? S.blocks[S.bi] : S.doors; }
+function vis(){
+  /* blocks are already built from knockable(), so a single block still
+     honours the "skip the ones with a new roof" switch */
+  if(S.blocks && S.blocks.length) return S.blocks[Math.min(S.bi, S.blocks.length-1)];
+  return knockable(S.doors);
+}
 function setBlock(i){
   S.bi = i;
   try{ localStorage.setItem('sb:b:'+S.route.id, i); }catch(e){}
@@ -696,7 +703,8 @@ function load(){
 }
 function reload(){ try{ localStorage.removeItem('sb:p:'+S.route.id); }catch(e){} load(); }
 function afterLoad(){
-  S.blocks = makeBlocks(S.doors, blockTarget(S.route));
+  tagRoofed(S.doors);
+  S.blocks = makeBlocks(knockable(S.doors), blockTarget(S.route));
   var want = 0;
   try{ want = parseInt(localStorage.getItem('sb:b:'+S.route.id),10) || 0; }catch(e){}
   S.bi = Math.max(0, Math.min(want, S.blocks.length-1));
@@ -844,6 +852,24 @@ function addOverlays(){
     m.addLayer({ id:'line-dash', type:'line', source:'line',
       paint:{ 'line-color':'#c4a574', 'line-width':2, 'line-dasharray':[2,2] }, layout:{ 'line-cap':'round', 'line-join':'round' } });
   }
+  if(!m.getSource('rrdoors')){
+    /* doors that already got a new roof — drawn under the live doors, dim */
+    m.addSource('rrdoors', { type:'geojson', data:fc() });
+    m.addLayer({ id:'rrdoors', type:'circle', source:'rrdoors', paint:{
+      'circle-radius':['interpolate',['linear'],['zoom'], 13,2.5, 16,4.5, 19,7],
+      'circle-color':'#9aa3b8', 'circle-opacity':.45,
+      'circle-stroke-color':'#ffffff', 'circle-stroke-width':1 } });
+    m.on('click', 'rrdoors', function(e){
+      var p = e.features[0].properties;
+      new maplibregl.Popup({ offset:12 }).setLngLat(e.features[0].geometry.coordinates)
+        .setHTML('<b>'+esc(p.ad)+'</b><br><span style="color:#5b667c">Skipped</span>'+
+          '<br>New roof permitted <b>'+esc(p.when)+'</b>'+
+          '<br><span style="color:#5b667c;font-size:11px">Off the walk list because a roof this new will not sell. '+
+          'The county record only goes back to 2021.</span>').addTo(m);
+    });
+    m.on('mouseenter', 'rrdoors', function(){ m.getCanvas().style.cursor='pointer'; });
+    m.on('mouseleave', 'rrdoors', function(){ m.getCanvas().style.cursor=''; });
+  }
   if(!m.getSource('doors')){
     m.addSource('doors', { type:'geojson', data:fc() });
     m.addLayer({ id:'doors', type:'circle', source:'doors', paint:{
@@ -933,7 +959,7 @@ function fit(pts){
 function paintOverview(){
   if(!S.styled) return;
   clearMarkers();
-  setData('doors', fc()); setData('line', fc());
+  setData('doors', fc()); setData('line', fc()); setData('rrdoors', fc());
   var pts = [], rings = [], storms = [], routes = [];
   AREAS.forEach(function(a){
     if(S.area !== 'all' && S.area !== a.id) return;
@@ -978,6 +1004,9 @@ function paintRoute(){
                    color:ERA_COLOR[era(p.yr)], mark:markOf(p.id) } });
   });
   setData('doors', fc(feats));
+  /* the ones we took off the list, so you can still see them */
+  setData('rrdoors', fc((S.doors||[]).filter(function(p){ return p.rr && p.lat && shown.indexOf(p) < 0; })
+    .map(function(p){ return pt(p.lat, p.lon, { ad:p.ad, when:ymLabel(p.rr) }); })));
   setData('line', fc(line.length ? [{ type:'Feature', geometry:{ type:'LineString', coordinates:line }, properties:{} }] : []));
   fit(pts);
 }
@@ -1018,52 +1047,145 @@ function openDrive(){
 }
 </script>
 <script>
-
 /* ============================================================
-   ROOFS GOING UP  —  Brevard County reroof permits
+   ROOFS  —  Brevard County roof permits, 2021 to today
    ------------------------------------------------------------
-   Where this comes from: Brevard County's Accela portal has a public
-   report called "Permits Issued Details". Feed it a date range and it
-   hands back a spreadsheet of every permit the COUNTY issued, with the
-   contractor's name, licence and phone on every line. We pulled
-   15 March 2026 (hail day) through 13 September 2026 and kept the
-   reroofs. Each one was placed on the map by its tax-account number
+   Where this comes from: Brevard County's Accela portal has a
+   public report called "Permits Issued Details". Feed it a date
+   range and it hands back a spreadsheet of every permit the
+   COUNTY issued, with the contractor's name, licence and phone on
+   every line. We pulled 2021 through today and kept the reroofs —
+   24,269 of them. Each one was placed by its tax-account number
    against the county's own parcel layer.
 
-   What it is NOT: the county only permits the unincorporated areas
-   plus Grant-Valkaria. Palm Bay, Melbourne, Indialantic, Satellite
-   Beach, Cocoa Beach, Titusville city, Rockledge city and West
-   Melbourne all issue their own. A blank patch on this layer over a
-   city is a hole in the data, not a quiet neighbourhood.
+   Two different jobs come out of one file:
 
-   Why you care: a neighbour can SEE a roof going up. Red dot = a roof
-   that went on in the last 30 days. That is a live conversation on
-   that street today.
+   1. ROOFS GOING UP  (`recent`, since the 15 March hail)
+      Red dots. A neighbour can SEE these. Proof the street got hit.
+
+   2. ALREADY RE-ROOFED  (`old` + `recent`, 2021 onward)
+      A house that got a new roof in the last five years is not
+      buying another one. Those doors get greyed out and dropped
+      from the walk, so you spend the afternoon on doors that can
+      actually say yes.
+
+   What it is NOT: the county only permits the unincorporated
+   areas plus Grant-Valkaria. Palm Bay, Melbourne, Indialantic,
+   Satellite Beach, Cocoa Beach and the rest issue their own and
+   do not publish them. A blank patch over a city is a hole in the
+   data, not a quiet neighbourhood. And the file starts at
+   1 January 2021 with a gap from 1 Jan to 14 Mar 2026 — a roof
+   older or inside that gap looks, to us, like no roof at all.
    ============================================================ */
-var ROOFS = { loaded:false, on:true, rows:[], cs:[], doc:null };
+var ROOFS = { loaded:false, on:true, rows:[], cs:[], st:[], ct:[], doc:null, idx:null, oldest:'2021' };
 
 function loadRoofs(){
   if(ROOFS.loaded) return;
-  fetch('reroofs.json').then(function(r){ return r.json(); }).then(function(j){
-    ROOFS.doc = j; ROOFS.cs = j.contractors || []; ROOFS.rows = j.rows || [];
+  fetch('roofs.json').then(function(r){ return r.json(); }).then(function(j){
+    ROOFS.doc = j;
+    ROOFS.cs  = j.contractors || [];
+    ROOFS.st  = j.streets || [];
+    ROOFS.ct  = j.cities || [];
+    ROOFS.rows = j.recent || [];
+    buildRoofIndex(j);
     ROOFS.loaded = true;
     paintRoofs();
     renderFilters();
-    if(S.mode !== 'route') renderOverview();
+    if(S.mode === 'route'){ if(S.doors.length) afterLoad(); }
+    else renderOverview();
   }).catch(function(){ /* offline first run: the layer just stays empty */ });
 }
 
-/* day 0 is 15 March 2026. Turn that into "how many days ago". */
+/* ---------- the address index, for "has this door already been done?" ---------- */
+function addrKey(num, street, city){
+  return num + '|' + street + '|' + city;
+}
+/* strip the house number off a tax-roll address and normalise the rest */
+function splitAddr(ad){
+  var s = String(ad||'').replace(/\s+/g,' ').trim().toUpperCase();
+  var m = s.match(/^(\d+)\s+(.*)$/);
+  if(!m) return null;
+  return { num:parseInt(m[1],10), street:m[2].trim() };
+}
+function buildRoofIndex(j){
+  var ix = {}, byNumSt = {};
+  function put(num, sI, cI, ymAbs){
+    var st = ROOFS.st[sI] || '', ct = (ROOFS.ct[cI] || '').toUpperCase();
+    var k = addrKey(num, st, ct);
+    if(!(k in ix) || ymAbs > ix[k]) ix[k] = ymAbs;
+    var k2 = num + '|' + st;
+    if(!(k2 in byNumSt)) byNumSt[k2] = [];
+    if(byNumSt[k2].indexOf(ct) < 0) byNumSt[k2].push(ct);
+    var k3 = k2 + '#';
+    if(!(k3 in ix) || ymAbs > ix[k3]) ix[k3] = ymAbs;
+  }
+  /* ymAbs = months since Jan 2021, so both halves of the file compare directly */
+  (j.old||[]).forEach(function(o){ put(o[1], o[2], o[3], o[0]); });
+  var baseMonths = (2026-2021)*12 + (3-1);          /* March 2026 */
+  (j.recent||[]).forEach(function(r){
+    var d = new Date(Date.UTC(2026,2,15) + r[2]*86400000);
+    put(r[5], r[6], r[7], (d.getUTCFullYear()-2021)*12 + d.getUTCMonth());
+  });
+  ROOFS.idx = ix; ROOFS.amb = byNumSt;
+}
+/* months-since-Jan-2021 → "March 2024" */
+var MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function ymLabel(ym){ return MON[ym % 12] + ' ' + (2021 + Math.floor(ym/12)); }
+function ymYear(ym){ return 2021 + Math.floor(ym/12); }
+function ymAgoYears(ym){
+  var now = (new Date()).getUTCFullYear()*12 + (new Date()).getUTCMonth() - (2021*12);
+  return Math.max(0, (now - ym) / 12);
+}
+/* the newest reroof on this exact address, or 0 */
+function roofedAt(p){
+  if(!ROOFS.idx) return 0;
+  var a = splitAddr(p.ad);
+  if(!a) return 0;
+  var city = String(p.city||'').trim().toUpperCase();
+  var hit = ROOFS.idx[addrKey(a.num, a.street, city)];
+  if(hit !== undefined) return hit;
+  /* the tax roll and the permit book do not always agree on the town name.
+     Fall back only when this number-and-street exists in exactly one town. */
+  var towns = ROOFS.amb[a.num + '|' + a.street];
+  if(towns && towns.length === 1){
+    var h2 = ROOFS.idx[a.num + '|' + a.street + '#'];
+    if(h2 !== undefined) return h2;
+  }
+  return 0;
+}
+/* stamp every door with p.rr = months-since-Jan-2021 of its last reroof */
+function tagRoofed(doors){
+  if(!ROOFS.loaded) return 0;
+  var n = 0;
+  doors.forEach(function(p){ var ym = roofedAt(p); p.rr = ym || 0; if(ym) n++; });
+  return n;
+}
+function roofedCount(doors){
+  var n = 0; (doors||[]).forEach(function(p){ if(p.rr) n++; }); return n;
+}
+/* the doors worth knocking: drop the ones that already have a new roof */
+function knockable(doors){
+  if(!S.skipRR) return doors;
+  return doors.filter(function(p){ return !p.rr; });
+}
+function toggleSkipRR(){
+  S.skipRR = !S.skipRR;
+  try{ localStorage.setItem('sb:skiprr', S.skipRR ? '1' : '0'); }catch(e){}
+  if(S.mode === 'route' && S.doors.length) afterLoad(); else { renderOverview(); paintMap(); }
+}
+
+/* ---------- the red dots: roofs going up now ---------- */
 function roofAge(day){
   var base = Date.UTC(2026,2,15) + day*86400000;
   return Math.max(0, Math.round((Date.now() - base)/86400000));
 }
 function roofRow(r){
   var c = ROOFS.cs[r[3]] || ['','',''];
-  return { lat:r[0], lon:r[1], age:roofAge(r[2]), val:r[4], ad:r[5], city:r[6], zip:r[7],
+  return { lat:r[0], lon:r[1], age:roofAge(r[2]), val:r[4],
+           ad:(r[5] ? r[5]+' ' : '') + (ROOFS.st[r[6]]||''),
+           city:ROOFS.ct[r[7]]||'', zip:r[8],
            who:c[0], lic:c[1], tel:c[2] };
 }
-/* how many roofs went up within `mi` miles of a point in the last `days` */
 function roofsNear(lat, lon, mi, days){
   if(!ROOFS.loaded) return 0;
   var n = 0, R = mi/69, R2 = R*R, cs = Math.cos(lat*Math.PI/180);
@@ -1111,10 +1233,6 @@ function roofPopup(f){
    point. "Three houses on this street pulled a roof permit in the
    last month." That is a fact off the county's books, it is
    checkable, and it is not a claim about anybody's damage.
-
-   proofFor(doors) finds every reroof within a short walk of the
-   doors you are actually standing among — not the middle of the
-   route — and groups them by street, newest first.
    ============================================================ */
 var PROOF_MI = 0.6;      /* a short walk: about ten minutes, and you can see it */
 var PROOF_DAYS = 120;    /* after four months a new roof stops looking new */
@@ -1133,18 +1251,17 @@ function proofFor(doors){
     for(var j=0;j<pts.length;j++){
       var dy = row[0]-pts[j][0], dx = (row[1]-pts[j][1])*cs, d2 = dx*dx+dy*dy;
       if(d2 < best) best = d2;
-      if(best <= R2 && j > 40) break;       /* close enough, stop measuring */
+      if(best <= R2 && j > 40) break;
     }
     if(best <= R2){ var o = roofRow(row); o.ft = Math.round(Math.sqrt(best)*364000); out.push(o); }
   }
   out.sort(function(a,b){ return a.age - b.age; });
   return out;
 }
-/* group the proof list by street name, keeping the newest street first */
 function proofByStreet(list){
   var g = {}, order = [];
   list.forEach(function(p){
-    var st = p.ad.replace(/^\s*\d+\s*/, '').replace(/^[NSEW]\s+/, '').trim().toUpperCase();
+    var st = p.ad.replace(/^\s*\d+\s*/, '').trim().toUpperCase();
     if(!g[st]){ g[st] = []; order.push(st); }
     g[st].push(p);
   });
@@ -1153,6 +1270,7 @@ function proofByStreet(list){
     return { street:st, rows:rows, ft:rows[0].ft };
   }).sort(function(a,b){ return a.ft - b.ft; });
 }
+
 /* the street you are actually standing on, for the opening line */
 function ownStreet(doors){
   var c = {}, best = '', n = 0;
@@ -1165,9 +1283,7 @@ function ownStreet(doors){
   return best;
 }
 function titleCase(s){ return String(s).toLowerCase().replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); }); }
-
 function ago(d){ return d === 0 ? 'today' : (d === 1 ? 'yesterday' : d + ' days ago'); }
-
 </script>
 <script>
 /* ============================================================
@@ -1199,7 +1315,7 @@ function roofSection(){
     var age = roofAge(r[2]);
     if(age > 30) return;
     n30++;
-    var k = r[6] + ' ' + r[7];
+    var k = (ROOFS.ct[r[7]]||'') + ' ' + r[8];
     by[k] = (by[k]||0) + 1;
     var c = (ROOFS.cs[r[3]]||[''])[0];
     who[c] = (who[c]||0) + 1;
@@ -1222,6 +1338,16 @@ function roofSection(){
     'so a quiet spot on the map over a city is a blind spot, not good news. '+
     'And none of this is your work \u2014 it is proof the street got hit, nothing more.</div>';
   return h;
+}
+
+/* how many of a route's doors already have a new roof (only once its doors are cached) */
+function rrBadge(r, cached){
+  if(!ROOFS.loaded || !cached || COUNTY_BLIND[r.id]) return '';
+  var d = orderDoors(cached, r);
+  tagRoofed(d);
+  var n = roofedCount(d);
+  if(!n) return '';
+  return ' &middot; <span style="color:#9aa3b8">'+n+' already re-roofed</span>';
 }
 
 /* A route's roof badge. County permit data only covers unincorporated
@@ -1270,7 +1396,7 @@ function renderOverview(){
       '<span class="rowtxt"><b>'+esc(r.name)+(r.radar?' <span class="chip radar" style="font-size:10px;padding:1px 6px">radar only</span>':'')+'</b>'+
       '<small>'+esc(r.town)+' &middot; '+x.min+' min drive'+
       (d.length ? ' &middot; '+d.length+' doors &middot; '+blocks+' afternoon'+(blocks>1?'s':'')+(done?' &middot; '+done+' marked':'') : ' &middot; tap to load')+
-      ' &middot; '+daysLeft(lossOf(r))+'d to file'+roofBadge(r)+'</small></span>'+
+      ' &middot; '+daysLeft(lossOf(r))+'d to file'+roofBadge(r)+rrBadge(r, c)+'</small></span>'+
       '<span class="rowgo">&rsaquo;</span></button>';
   });
   h += roofSection();
@@ -1320,7 +1446,8 @@ function renderRoute(){
   var mjv = jvs.length ? jvs[Math.floor(jvs.length/2)] : 0;
   var k=0,n=0; d.forEach(function(p){ var m=markOf(p.id); if(m==='k')k++; if(m==='n')n++; });
 
-  var h = '<button class="btn sand" onclick="openDrive()">Drive it in Google Maps</button>'+
+  var h = rrBanner()+
+    '<button class="btn sand" onclick="openDrive()">Drive it in Google Maps</button>'+
           '<button class="btn" onclick="printSheet(false)">Print this block</button>'+
           '<button class="btn" onclick="printSheet(true)">Print every block</button>'+
           '<button class="btn" onclick="downloadCsv(false)">Walk list file (CSV)</button>';
@@ -1416,6 +1543,34 @@ function sayHtml(){
 }
 
 /* ---------- paper ---------- */
+/* ---------- already re-roofed: the doors we took off the walk ---------- */
+function rrBanner(){
+  if(!ROOFS.loaded) return '';
+  var r = S.route;
+  if(COUNTY_BLIND[r.id]){
+    return '<div class="warn" style="margin-bottom:10px"><b>Roof history is not public here.</b> '+
+      esc(r.town)+' issues its own permits, so we cannot tell which of these doors already got a new roof. '+
+      'Every door is still on the list — check the shingles yourself from the street.</div>';
+  }
+  var done = roofedCount(S.doors);
+  if(!done){
+    return '<div class="warn" style="margin-bottom:10px"><b>Nobody on this route has pulled a roof permit since 2021.</b> '+
+      'Every door is live. Read that two ways: either the street is untouched, or the damage is not being claimed yet.</div>';
+  }
+  var pct = Math.round(done/S.doors.length*100);
+  var recent5 = 0;
+  S.doors.forEach(function(p){ if(p.rr && ymAgoYears(p.rr) <= 3) recent5++; });
+  return '<div class="warn" style="margin-bottom:10px">'+
+    '<b>'+done+' of '+S.doors.length+' doors ('+pct+'%) already have a new roof.</b> '+
+    recent5+' of those were done in the last three years. '+
+    (S.skipRR ? 'They are <b>off the walk list</b> — you are seeing the '+(S.doors.length-done)+' that can still say yes.'
+              : 'They are <b>still on the list</b>.')+
+    '<br><button class="btn" style="margin-top:8px" onclick="toggleSkipRR()">'+
+    (S.skipRR ? 'Put them back on the list' : 'Take them off the list')+'</button>'+
+    '<br><span style="font-size:11px;color:#5b667c">County record only, and only back to 1 January 2021 '+
+    '(with a gap from 1 Jan to 14 Mar 2026). An older roof looks like no roof to this app.</span></div>';
+}
+
 /* ---------- the proof card: point, do not talk ---------- */
 function proofHtml(){
   var r = S.route;
