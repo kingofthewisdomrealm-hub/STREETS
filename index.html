@@ -130,6 +130,7 @@ h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--
 .mk{display:flex;gap:4px;flex:none}
 .mk button{width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:13px;cursor:pointer}
 .mk button.on{background:var(--navy);color:var(--word);border-color:var(--navy);font-weight:700}
+.mk button.on.hurt{background:#c1524a;border-color:#c1524a;color:#fff}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--ink2);margin:6px 0}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -520,7 +521,7 @@ function fetchParcels(r){
   var url = FDOR + '?' + qs({
     f:'json', where:"DOR_UC IN ('001','002')", geometry:b, geometryType:'esriGeometryEnvelope',
     inSR:'4326', spatialRel:'esriSpatialRelIntersects',
-    outFields:'PARCEL_ID,PHY_ADDR1,PHY_CITY,PHY_ZIPCD,ACT_YR_BLT,EFF_YR_BLT,JV,TOT_LVG_AR,OWN_NAME,DOR_UC',
+    outFields:'PARCEL_ID,PHY_ADDR1,PHY_CITY,PHY_ZIPCD,ACT_YR_BLT,EFF_YR_BLT,JV,TOT_LVG_AR,OWN_NAME,DOR_UC,OWN_ADDR1,OWN_ADDR2,OWN_CITY,OWN_STATE,OWN_ZIPCD',
     returnCentroid:'true', returnGeometry:'false', outSR:'4326', resultRecordCount:'2000'
   });
   return fetch(url).then(function(x){ return x.json(); }).then(function(j){
@@ -529,16 +530,19 @@ function fetchParcels(r){
       var a=f.attributes, c=f.centroid||{};
       return { id:a.PARCEL_ID, ad:(a.PHY_ADDR1||'').replace(/\s+/g,' ').trim(), city:(a.PHY_CITY||'').trim(),
                zip:(a.PHY_ZIPCD||''), yr:a.ACT_YR_BLT||a.EFF_YR_BLT||0, jv:a.JV||0,
-               sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), lat:c.y, lon:c.x };
+               sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), lat:c.y, lon:c.x,
+               /* where the tax bill goes — the letter goes there too */
+               m1:(a.OWN_ADDR1||'').replace(/\s+/g,' ').trim(), m2:(a.OWN_ADDR2||'').replace(/\s+/g,' ').trim(),
+               mcity:(a.OWN_CITY||'').trim(), mst:(a.OWN_STATE||'').trim(), mzip:String(a.OWN_ZIPCD||'').trim() };
     }).filter(function(p){ return p.lat && p.ad; });
   });
 }
 function cacheGet(id){
-  try{ var v = JSON.parse(localStorage.getItem('sb:p:'+id)||'null');
+  try{ var v = JSON.parse(localStorage.getItem('sb:p2:'+id)||'null');
        if(v && (Date.now()-v.t) < 30*86400000) return v.rows; }catch(e){}
   return null;
 }
-function cacheSet(id, rows){ try{ localStorage.setItem('sb:p:'+id, JSON.stringify({t:Date.now(), rows:rows})); }catch(e){} }
+function cacheSet(id, rows){ try{ localStorage.setItem('sb:p2:'+id, JSON.stringify({t:Date.now(), rows:rows})); }catch(e){} }
 
 /* ---------- the walk: streets in order, chained corner to corner ---------- */
 function orderDoors(rows, r){
@@ -612,6 +616,94 @@ function setMark(id, v){
     if(markOf(id)===v) localStorage.removeItem(k); else localStorage.setItem(k, v);
   }catch(e){}
   renderRoute(); paintMap();
+}
+/* "Hurt" is a scout flag, not a knock: you saw it from the street. It lives beside the
+   knock mark so a house can be hurt AND knocked, and it never counts as a walked door. */
+function hurtOf(id, rid){ try{ return !!localStorage.getItem('sb:h:'+(rid||S.route.id)+':'+id); }catch(e){ return false; } }
+function setHurt(id){
+  try{ var k = 'sb:h:'+S.route.id+':'+id; if(hurtOf(id)) localStorage.removeItem(k); else localStorage.setItem(k, '1'); }catch(e){}
+  renderRoute(); paintMap();
+}
+
+/* ---------- the letters file: who gets which letter, and where it goes ---------- */
+var OWNER_CO  = /\b(LLC|L\.L\.C|INC|CORP|CO\b|BANK|ASSOC|ASSN|HOLDINGS|PROPERTIES|PARTNERS|LP\b|LLP|LTD|CHURCH|COUNTY|CITY OF|HOA|HOUSING|AUTHORITY|MINISTR|FUND|INVEST|REALTY|ENTERPRISES|GROUP|SERVICES|VENTURES|CAPITAL|MORTGAGE|FEDERAL|NATIONAL)\b/;
+var OWNER_TR  = /\b(TRUST|TR\b|TRS\b|TRUSTEE|TTEE|REVOCABLE|REV TR|LIVING|FAMILY TR|FAM TR|LIV TR)\b/;
+var OWNER_EST = /\b(EST OF|ESTATE|DECEASED|DEC'D|DECD|HEIRS)\b/;
+var NAME_JUNK = /\b(JR|SR|II|III|IV|H\/W|W\/H|JT|JTRS|JTWROS|ET AL|ETAL|ETUX|ET UX|ETVIR|ET VIR|L\/E|TTEE|TR|TRS|TRUSTEE|AKA|FKA|NKA|MRS|MR|MS|DR|REV)\b\.?/g;
+function tcase(s){ return String(s||'').toLowerCase().replace(/(^|[\s\-'])([a-z])/g, function(m,a,b){ return a+b.toUpperCase(); }).replace(/\bMc([a-z])/g, function(m,a){ return 'Mc'+a.toUpperCase(); }).replace(/\b(Llc|Inc|Llp|Lp|Po|Hoa|Ii|Iii|Iv)\b/g, function(m){ return m.toUpperCase(); }); }
+function ownerKind(own){
+  var u = ' '+String(own||'').toUpperCase().replace(/[.,]/g,' ').replace(/\s+/g,' ').trim()+' ';
+  if(!u.trim()) return 'unknown';
+  if(OWNER_EST.test(u)) return 'estate';
+  if(OWNER_TR.test(u)) return 'trust';
+  if(OWNER_CO.test(u)) return 'company';
+  return 'person';
+}
+/* Tax rolls write "RIVERA JOSE A & MARIA" or "SMITH JOHN & LOPEZ ANA". Turn that into
+   first names for the greeting and a proper name for the envelope. */
+function nameParts(own){
+  var u = String(own||'').toUpperCase().replace(/[.,]/g,' ').replace(NAME_JUNK,' ').replace(/\s+/g,' ').trim();
+  var halves = u.split(/\s*(?:&|\bAND\b)\s*/).filter(Boolean);
+  if(!halves.length) return null;
+  var a = halves[0].split(' '), last = a[0]||'', first = a[1]||'';
+  var people = first ? [{first:first, last:last}] : [];
+  halves.slice(1).forEach(function(h){
+    var t = h.split(' ');
+    if(t.length === 1) people.push({first:t[0], last:last});
+    else if(t[0] === last) people.push({first:t[1], last:last});
+    else people.push({first:t[1], last:t[0]});
+  });
+  if(!people.length) return { greet:'', mail:tcase(u) };
+  var firsts = people.map(function(p){ return tcase(p.first); });
+  var sameLast = people.every(function(p){ return p.last === last; });
+  var mail = sameLast ? firsts.join(' & ')+' '+tcase(last)
+                      : people.map(function(p){ return tcase(p.first)+' '+tcase(p.last); }).join(' & ');
+  return { greet: firsts.length > 1 ? firsts.slice(0,-1).join(', ')+' and '+firsts[firsts.length-1] : firsts[0], mail:mail };
+}
+function letterRow(p, r, blockNo){
+  var m = markOf(p.id), kind = ownerKind(p.own), np = nameParts(p.own);
+  var tier = hurtOf(p.id) || m==='l' ? 'A' : m==='k' ? 'skip' : 'B';
+  if(kind === 'estate') tier = 'skip';
+  var greet = (kind === 'person' && np && np.greet) ? np.greet : 'Neighbor';
+  var mailName = (kind === 'person' && np) ? np.mail : tcase(p.own);
+  var house = p.ad+', '+(p.city||'')+' FL '+(p.zip||'');
+  var hasMail = !!p.m1;
+  var mail1 = hasMail ? p.m1 : p.ad, mail2 = hasMail ? p.m2 : '', mcity = hasMail ? p.mcity : (p.city||'');
+  var mst = hasMail ? (p.mst||'FL') : 'FL', mzip = hasMail ? p.mzip : (p.zip||'');
+  var norm = function(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); };
+  var absentee = hasMail && (norm(mail1) !== norm(p.ad) || mst !== 'FL') ? 'Y' : 'N';
+  var st = m==='k' ? 'Knocked' : m==='n' ? 'Not home' : m==='l' ? 'LEAD' : '';
+  return [tier, p.id, greet, mailName, mail1, mail2, mcity, mst, mzip, absentee, kind, p.own||'',
+          p.ad, p.city||'', p.zip||'', p.yr||'', r.name, r.town, blockNo, hurtOf(p.id)?'Y':'', st, '', ''];
+}
+function lettersCsvOf(rows, r){
+  var head = ['Tier','Parcel','Greeting','Mail to','Mail address 1','Mail address 2','Mail city','Mail state','Mail zip',
+              'Absentee','Owner kind','Owner of record','House address','House city','House zip','Year built',
+              'Route','Town','Block','Hurt','Status','Anchor house','One thing you saw'];
+  var out = [head.join(',')];
+  var blockOf = {};
+  if(S.blocks && S.blocks.length > 1) S.blocks.forEach(function(b,i){ b.forEach(function(p){ blockOf[p.id] = i+1; }); });
+  rows.forEach(function(p){
+    out.push(letterRow(p, r, blockOf[p.id]||1).map(function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }).join(','));
+  });
+  return out.join('\n');
+}
+function exportLetters(){
+  var rows = S.doors;
+  if(!rows.length){ alert('No doors loaded yet.'); return; }
+  if(rows.every(function(p){ return p.m1 === undefined; })){
+    alert('These records were saved before the mailing address was added. Refreshing them now — press Letters file again in a few seconds.');
+    reload(); return;
+  }
+  var a = 0, b = 0, s = 0, abs = 0;
+  rows.forEach(function(p){ var row = letterRow(p, S.route, 1); if(row[0]==='A') a++; else if(row[0]==='B') b++; else s++; if(row[9]==='Y') abs++; });
+  var name = S.route.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '-letters.csv';
+  var blob = new Blob([lettersCsvOf(rows, S.route)], { type:'text/csv' });
+  var el = document.createElement('a');
+  el.href = URL.createObjectURL(blob); el.download = name;
+  document.body.appendChild(el); el.click();
+  setTimeout(function(){ URL.revokeObjectURL(el.href); el.remove(); }, 1000);
+  alert(name+'\n\n'+a+' Tier A (hurt or lead — the personal letter)\n'+b+' Tier B (the neighborhood letter)\n'+s+' skipped (already knocked, or an estate)\n'+abs+' go to a mailing address that is not the house.\n\nEvery letter still needs the three Florida sentences on it.');
 }
 
 /* ---------- when it gets dark (USNO algorithm, no network) ---------- */
@@ -694,7 +786,7 @@ function load(){
     }
   });
 }
-function reload(){ try{ localStorage.removeItem('sb:p:'+S.route.id); }catch(e){} load(); }
+function reload(){ try{ localStorage.removeItem('sb:p2:'+S.route.id); }catch(e){} load(); }
 function afterLoad(){
   S.blocks = makeBlocks(S.doors, blockTarget(S.route));
   var want = 0;
@@ -977,7 +1069,8 @@ function doorPopup(f){
       'Built '+(p.yr||'—')+(p.sf?' &middot; '+p.sf+' sq ft':'')+'<br>Owner of record: '+esc(p.own||'—')+
       '<br><button class="btn" onclick="setMark(\''+p.id+'\',\'k\')">Knocked</button>'+
       '<button class="btn" onclick="setMark(\''+p.id+'\',\'n\')">Not home</button>'+
-      '<button class="btn" onclick="setMark(\''+p.id+'\',\'l\')">Lead</button>')
+      '<button class="btn" onclick="setMark(\''+p.id+'\',\'l\')">Lead</button>'+
+      '<button class="btn'+(hurtOf(p.id)?' sand':'')+'" onclick="setHurt(\''+p.id+'\')">Hurt</button>')
     .addTo(S.map);
 }
 function paintMap(){ if(!S.map || !S.styled) return; if(S.mode==='route') paintRoute(); else paintOverview(); }
@@ -1101,7 +1194,8 @@ function renderRoute(){
   var h = '<button class="btn sand" onclick="openDrive()">Drive it in Google Maps</button>'+
           '<button class="btn" onclick="printSheet(false)">Print this block</button>'+
           '<button class="btn" onclick="printSheet(true)">Print every block</button>'+
-          '<button class="btn" onclick="downloadCsv(false)">Walk list file (CSV)</button>';
+          '<button class="btn" onclick="downloadCsv(false)">Walk list file (CSV)</button>'+
+          '<button class="btn" onclick="exportLetters()">Letters file (CSV)</button>';
 
   if(S.blocks.length > 1){
     var walked = 0; S.doors.forEach(function(p){ if(markOf(p.id)) walked++; });
@@ -1149,9 +1243,10 @@ function renderRoute(){
         '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
         '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
         '<button class="'+(m==='l'?'on':'')+'" title="Lead" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
+        '<button class="'+(hurtOf(p.id)?'on hurt':'')+'" title="Hurt — you saw it from the street" onclick="setHurt(\''+p.id+'\')">H</button>'+
       '</span></div>';
   });
-  h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = a name and a number; that one becomes a CRM row inside two days.</p>'+
+  h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = a name and a number; that one becomes a CRM row inside two days. H = hurt: you saw it from the street (tarp, lifted tabs, dented gutters, torn screen). H and L get the personal letter; everything else gets the neighborhood letter; K is skipped.</p>'+
        '<button class="btn prime" onclick="copyLeads()">Copy the leads and the knocks</button>'+
        '<button class="btn" onclick="downloadCsv(true)">Whole route as a file</button>'+
        '<button class="btn" onclick="reload()">Refresh records</button>';
