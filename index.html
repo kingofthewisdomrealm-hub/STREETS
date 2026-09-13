@@ -1104,6 +1104,70 @@ function roofPopup(f){
     .addTo(S.map);
 }
 
+/* ============================================================
+   THE PROOF CARD
+   ------------------------------------------------------------
+   The strongest thing you can do on a porch is point. Not talk —
+   point. "Three houses on this street pulled a roof permit in the
+   last month." That is a fact off the county's books, it is
+   checkable, and it is not a claim about anybody's damage.
+
+   proofFor(doors) finds every reroof within a short walk of the
+   doors you are actually standing among — not the middle of the
+   route — and groups them by street, newest first.
+   ============================================================ */
+var PROOF_MI = 0.6;      /* a short walk: about ten minutes, and you can see it */
+var PROOF_DAYS = 120;    /* after four months a new roof stops looking new */
+
+function proofFor(doors){
+  if(!ROOFS.loaded) return [];
+  var pts = (doors||[]).filter(function(p){ return p.lat; })
+                       .map(function(p){ return [p.lat, p.lon]; });
+  if(!pts.length && S.route) pts = [S.route.center];
+  if(!pts.length) return [];
+  var R = PROOF_MI/69, R2 = R*R, out = [];
+  for(var i=0;i<ROOFS.rows.length;i++){
+    var row = ROOFS.rows[i], age = roofAge(row[2]);
+    if(age > PROOF_DAYS) continue;
+    var best = 1e9, cs = Math.cos(row[0]*Math.PI/180);
+    for(var j=0;j<pts.length;j++){
+      var dy = row[0]-pts[j][0], dx = (row[1]-pts[j][1])*cs, d2 = dx*dx+dy*dy;
+      if(d2 < best) best = d2;
+      if(best <= R2 && j > 40) break;       /* close enough, stop measuring */
+    }
+    if(best <= R2){ var o = roofRow(row); o.ft = Math.round(Math.sqrt(best)*364000); out.push(o); }
+  }
+  out.sort(function(a,b){ return a.age - b.age; });
+  return out;
+}
+/* group the proof list by street name, keeping the newest street first */
+function proofByStreet(list){
+  var g = {}, order = [];
+  list.forEach(function(p){
+    var st = p.ad.replace(/^\s*\d+\s*/, '').replace(/^[NSEW]\s+/, '').trim().toUpperCase();
+    if(!g[st]){ g[st] = []; order.push(st); }
+    g[st].push(p);
+  });
+  return order.map(function(st){
+    var rows = g[st].slice().sort(function(a,b){ return a.ft - b.ft; });
+    return { street:st, rows:rows, ft:rows[0].ft };
+  }).sort(function(a,b){ return a.ft - b.ft; });
+}
+/* the street you are actually standing on, for the opening line */
+function ownStreet(doors){
+  var c = {}, best = '', n = 0;
+  (doors||[]).forEach(function(p){
+    var st = String(p.ad||'').replace(/^\s*\d+\s*/, '').trim().toUpperCase();
+    if(!st) return;
+    c[st] = (c[st]||0)+1;
+    if(c[st] > n){ n = c[st]; best = st; }
+  });
+  return best;
+}
+function titleCase(s){ return String(s).toLowerCase().replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); }); }
+
+function ago(d){ return d === 0 ? 'today' : (d === 1 ? 'yesterday' : d + ' days ago'); }
+
 </script>
 <script>
 /* ============================================================
@@ -1236,6 +1300,7 @@ function renderRouteHead(){
       '<button class="tab'+(S.tab==='doors'?' on':'')+'" data-p="doors" onclick="setTab(\'doors\')">Doors</button>'+
       '<button class="tab'+(S.tab==='area'?' on':'')+'" data-p="area" onclick="setTab(\'area\')">The area</button>'+
       '<button class="tab'+(S.tab==='say'?' on':'')+'" data-p="say" onclick="setTab(\'say\')">What to say</button>'+
+      '<button class="tab'+(S.tab==='proof'?' on':'')+'" data-p="proof" onclick="setTab(\'proof\')">Proof</button>'+
     '</div>';
   document.getElementById('sheethead').innerHTML = h;
 }
@@ -1245,6 +1310,7 @@ function renderRoute(){
   var el = document.getElementById('sheetbody');
   if(S.tab === 'area'){ el.innerHTML = areaHtml(); return; }
   if(S.tab === 'say'){ el.innerHTML = sayHtml(); return; }
+  if(S.tab === 'proof'){ el.innerHTML = proofHtml(); return; }
   if(!S.doors.length){ el.innerHTML = '<div class="loading">Pulling the county records for these streets…</div>'; return; }
 
   var r = S.route, d = vis(), pl = plan(d);
@@ -1350,6 +1416,82 @@ function sayHtml(){
 }
 
 /* ---------- paper ---------- */
+/* ---------- the proof card: point, do not talk ---------- */
+function proofHtml(){
+  var r = S.route;
+  if(!ROOFS.loaded) return '<div class="loading">Loading the county permit file…</div>';
+  if(COUNTY_BLIND[r.id]){
+    return '<h3 class="sec">No proof card for this route</h3>'+
+      '<div class="warn"><b>' + esc(r.town) + ' issues its own permits and does not publish them.</b> '+
+      'The county file only covers unincorporated Brevard and Grant-Valkaria, so there is nothing to point at here — '+
+      'not because the street is quiet, but because the record is closed. '+
+      'Use the storm date and the radar on <b>The area</b> tab instead, and knock this one as a question.</div>'+
+      '<p class="sub">If you want this street covered, the fix is a public-records request to the city. Ask for permits issued in the last 90 days with the contractor name.</p>';
+  }
+  var list = proofFor(vis());
+  if(!list.length){
+    return '<h3 class="sec">Nothing going up here yet</h3>'+
+      '<div class="warn">No roof permit within a short walk of this block in the last '+PROOF_DAYS+' days. '+
+      '<b>That is real information.</b> Either the street took less than you think, or nobody has filed yet. '+
+      'Knock it as a question, and do not tell anyone their neighbours are getting roofs.</div>';
+  }
+  var n30 = list.filter(function(x){ return x.age <= 30; }).length;
+  var see = list.filter(function(x){ return x.ft <= 900; });
+  var groups = proofByStreet(list);
+  var here = titleCase(ownStreet(vis()) || S.route.name);
+  var h = '<h2 class="big">'+list.length+' roof'+(list.length===1?'':'s')+' going up around this block</h2>'+
+    '<p class="sub">Within a '+PROOF_MI+'-mile walk · '+n30+' in the last 30 days · '+
+    see.length+' close enough to see from the street.</p>'+
+    '<button class="btn sand" onclick="printProof()">Print this card</button>'+
+    '<div class="warn"><b>Say it like this.</b> “I’m working on '+esc(here)+' today. '+
+    'The county shows '+(n30 || list.length)+' roof permit'+((n30||list.length)===1?'':'s')+' pulled within half a mile '+
+    (n30 ? 'in the last month' : 'since the March hail')+'. '+
+    'I’m offering the neighbours a free look at theirs — no charge, no obligation.”<br><br>'+
+    '<b>Never say</b> those houses had damage, never say what a carrier will pay, and never let anyone think Covenant did that work. '+
+    'You are pointing at a public record, nothing more.</div>';
+  if(see.length){
+    h += '<h3 class="sec">Close enough to point at</h3><div class="chips">';
+    see.slice(0,14).forEach(function(p){
+      h += '<span class="chip'+(p.age<=30?' hot':'')+'">'+esc(p.ad)+' · '+p.ft+' ft · '+ago(p.age)+'</span>';
+    });
+    h += '</div>';
+  }
+  groups.forEach(function(g){
+    h += '<h3 class="sec">'+esc(g.street)+' — '+g.rows.length+'</h3>';
+    g.rows.slice(0,8).forEach(function(p){
+      h += '<p class="sub" style="margin:6px 0 0"><b>'+esc(p.ad)+'</b> — '+ago(p.age)+' · '+p.ft+' ft'+
+           (p.who ? ' · '+esc(p.who) : '')+(p.val ? ' · about $'+(p.val*1000).toLocaleString() : '')+'</p>';
+    });
+    if(g.rows.length > 8) h += '<p class="sub" style="margin:4px 0 0">…and '+(g.rows.length-8)+' more on this street.</p>';
+  });
+  h += '<p class="src">Source: Brevard County Accela, “Permits Issued Details”, permits issued 15 March – 13 September 2026. '+
+       'Unincorporated Brevard and Grant-Valkaria only. Every one of these is somebody else’s job.</p>';
+  return h;
+}
+function proofCardHtml(doors, label){
+  var list = proofFor(doors).slice().sort(function(a,b){ return a.ft - b.ft; });
+  if(!list.length) return '';
+  var n30 = list.filter(function(x){ return x.age <= 30; }).length;
+  var h = '<p class="pl"><b>PROOF — '+list.length+' roof permits within '+PROOF_MI+' mile of these doors, '+
+    n30+' in the last 30 days. County record. Point at them; do not claim them.</b></p>'+
+    '<table class="sheet"><tr><th>Address</th><th>How far</th><th>Permit issued</th><th>Roofer</th></tr>';
+  list.slice(0,10).forEach(function(p){
+    h += '<tr><td>'+esc(p.ad)+'</td><td>'+p.ft+' ft</td><td>'+ago(p.age)+'</td><td>'+esc(p.who||'')+'</td></tr>';
+  });
+  return h + '</table>';
+}
+function printProof(){
+  var list = proofFor(vis()), r = S.route;
+  var h = '<div class="pg"><h2>Proof card — '+esc(r.name)+', '+esc(r.town)+'</h2>'+
+    '<p class="pl">Covenant Builders · CBC1253676 · (772) 473-7115 · '+
+    'These are other companies’ permits, pulled from Brevard County’s public record. '+
+    'Never say a house had damage before you have been on the roof, and never say what a carrier will pay.</p>'+
+    (proofCardHtml(vis()) || '<p class="pl">No roof permits within '+PROOF_MI+' mile in the last '+PROOF_DAYS+' days.</p>')+
+    '</div>';
+  document.getElementById('print').innerHTML = h;
+  window.print();
+}
+
 function sheetFor(b, i){
   var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0], pl = plan(b);
   var h = '<div class="pg"><h2>'+esc(r.name)+' — '+esc(r.town)+
@@ -1357,6 +1499,7 @@ function sheetFor(b, i){
     '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(lossOf(r))+' days left to file · '+
     b.length+' doors · '+pl.pace+' an hour · knock '+clock(pl.start)+' to '+clock(pl.end)+' · dark at '+clock(pl.dark)+'</p>'+
     '<p class="pl">Covenant Builders · CBC1253676 · (772) 473-7115 · never say a roof has damage before you have been on it · the carrier decides the claim</p>'+
+    proofCardHtml(b)+
     '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knock</th><th>Out</th><th>Name / number / notes</th></tr>';
   b.forEach(function(p,j){
     h += '<tr><td>'+(j+1)+'</td><td>'+esc(p.ad)+'</td><td>'+esc(p.own||'')+'</td><td>'+(p.yr||'')+'</td><td></td><td></td><td></td></tr>';
