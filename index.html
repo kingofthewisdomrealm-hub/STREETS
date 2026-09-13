@@ -49,14 +49,14 @@ button{font-family:inherit}
 
 /* ---------- floating round buttons ---------- */
 .fabs{position:fixed;right:10px;z-index:999;display:flex;flex-direction:column;gap:10px;
-  bottom:calc(var(--sheet-peek) + 16px)}
+  bottom:calc(76px + env(safe-area-inset-bottom))}
 .fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);
   box-shadow:0 2px 8px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;
   font-size:18px;cursor:pointer;color:var(--ink);padding:0}
 .fab.on{background:var(--navy);color:var(--word);border-color:var(--navy)}
 
 /* ---------- layer picker ---------- */
-#layers{position:fixed;right:10px;bottom:calc(var(--sheet-peek) + 70px);z-index:1001;display:none;
+#layers{position:fixed;right:10px;bottom:calc(130px + env(safe-area-inset-bottom));z-index:1001;display:none;
   background:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.28);padding:8px;width:190px}
 #layers b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:2px 4px 6px}
 #layers button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 8px;border-radius:8px;
@@ -66,10 +66,16 @@ button{font-family:inherit}
 /* ---------- the bottom sheet ---------- */
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:1002;background:var(--card);
   border-radius:16px 16px 0 0;box-shadow:0 -3px 20px rgba(0,0,0,.20);
-  height:88vh;transform:translateY(calc(88vh - var(--sheet-peek)));
+  height:88vh;transform:translateY(100%);
   transition:transform .22s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;touch-action:none}
+#sheet.peek{transform:translateY(calc(88vh - var(--sheet-peek)))}
 #sheet.half{transform:translateY(45vh)}
 #sheet.full{transform:translateY(0)}
+#opensheet{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));
+  z-index:1003;display:flex;align-items:center;gap:8px;background:var(--navy);color:var(--word);
+  border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;
+  box-shadow:0 3px 14px rgba(0,0,0,.35);cursor:pointer}
+#opensheet span{color:var(--sand);font-weight:400;font-size:12.5px}
 #grab{padding:8px 0 4px;cursor:grab;flex:none}
 #grab i{display:block;width:38px;height:4px;border-radius:2px;background:#c9cfdb;margin:0 auto}
 #sheethead{padding:0 16px 8px;flex:none}
@@ -84,6 +90,7 @@ ul{margin:6px 0;padding-left:20px}li{font-size:14px;line-height:1.45;margin:5px 
 .chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--wash);border:1px solid var(--line);color:var(--ink)}
 .chip.hot{background:var(--navy);color:var(--word);border-color:var(--navy)}
 .chip.warn{background:#fdeceb;border-color:#f3c9c6;color:#8d3b35}
+.chip.radar{background:#eaf3ec;border-color:#c5dccb;color:#2f5e3f}
 .btn{background:var(--wash);border:1px solid var(--line);color:var(--ink);border-radius:8px;
   padding:9px 12px;font-size:13.5px;cursor:pointer;margin:0 6px 6px 0}
 .btn.prime{background:var(--navy);color:var(--word);border-color:var(--navy);font-weight:600}
@@ -138,7 +145,7 @@ h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--
 #print{display:none}
 @media print{
   html,body{overflow:visible;height:auto;background:#fff}
-  #map,#topbar,.filters,.fabs,#layers,#sheet{display:none !important}
+  #map,#topbar,.filters,.fabs,#layers,#sheet,#opensheet{display:none !important}
   #print{display:block !important}
   #print .pg{break-after:page;page-break-after:always}
   #print .pg:last-child{break-after:auto;page-break-after:auto}
@@ -176,7 +183,9 @@ h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--
   <button data-b="naip" onclick="setBase('naip')">Aerial photo (USGS)</button>
 </div>
 
-<div id="sheet">
+<button id="opensheet" onclick="openSheet()">Routes <span id="pillsub">13 walks</span></button>
+
+<div id="sheet" class="half">
   <div id="grab"><i></i></div>
   <div id="sheethead"></div>
   <div id="sheetbody"></div>
@@ -193,6 +202,15 @@ const YARD = [27.6386, -80.3973];           /* Vero Beach */
 const TODAY = new Date();
 
 const AREAS = [
+ {
+  id:'near', name:'Closest to the yard', when:'Radar, May and August 2026', loss:'2026-08-20',
+  head:'What the radar saw within 15 miles of the yard — and nobody phoned in',
+  blurb:'These three sit 7 to 15 miles from your yard instead of 25 to 35. Nobody on the ground reported hail here: the radar did. Your own Storm Map says it plainly — a ground report is evidence, a radar estimate is a lead, and radar reads high. So these are the short-drive doors, and every one of them is a question, never a claim.',
+  zips:'34951 Fort Pierce · 32958 Sebastian · 32948 Fellsmere',
+  score:'Radar-estimated 1.50–1.75 inch. Not on the confirmed knock list. Confirm on the roof.',
+  radar:true,
+  reports:[]
+ },
  {
   id:'hail', name:'The hail core', when:'15 March 2026', loss:'2026-03-15',
   head:'Golf-ball hail, 60–65 mph gusts, one narrow band',
@@ -231,6 +249,27 @@ const AREAS = [
 ];
 
 const ROUTES = [
+ {id:'r11', area:'near', pace:13, paceWhy:'Mid-2000s subdivision, sidewalks, normal spacing.',
+  name:'Spanish River & Sunberry', town:'Lakewood Park, Fort Pierce', loss:'2026-08-20', radar:true,
+  why:'Seven miles from the yard — the shortest drive in the book by a mile. Radar put 1.5 inches over 34951 on 20 August; nobody called it in. Knock it as a question and get on a roof before anybody says the word damage.',
+  center:[27.5450,-80.3830], d:0.011,
+  streets:['SPANISH RIVER RD','SUNBERRY CIR','SPRING LAKE TER','ARLINGTON WAY','PLACE LAKE DR','SHANNON DR','KILLARNEY AVE'],
+  park:'⚠ Radar only. Park on Spanish River and work the circles. Twenty minutes from the yard means you can knock this one on a Tuesday evening and still be home for supper.'},
+
+ {id:'r12', area:'near', pace:12, paceWhy:'Quarter-acre lots on the old Sebastian Highlands grid.',
+  name:'Barber & Clearmont', town:'Sebastian Highlands', loss:'2026-05-10', radar:true,
+  why:'Twelve miles out. Radar estimated 1.75 inches over 32958 on 10 May. Late-80s and 90s houses on quarter-acre lots — the roofs are the right age even if the hail turns out to be nothing.',
+  center:[27.7890,-80.4920], d:0.011,
+  streets:['BARBER ST','QUARRY LN','CLEARMONT ST','MULBERRY ST','VOCELLE AVE','BISCAYNE LN','PERCH LN'],
+  park:'⚠ Radar only. Barber St is the spine — park off it. Your own service area, your own neighbours, and the shortest apology if you get it wrong.'},
+
+ {id:'r13', area:'near', pace:14, paceWhy:'Small-town grid, small lots, porches on the street.',
+  name:'Elm & Bay', town:'Fellsmere', loss:'2026-05-12', radar:true,
+  why:'Fifteen miles, and a town of about five thousand where word travels in an afternoon. Radar estimated 1.75 inches over 32948 on 12 May. Do this one right and the town does your marketing.',
+  center:[27.7670,-80.6010], d:0.011,
+  streets:['S ELM ST','S BAY ST','S OAK ST','S HICKORY ST','S MAGNOLIA ST','S LIME ST','S PINE ST'],
+  park:'⚠ Radar only. Park downtown and walk the grid. Fellsmere is small — be the contractor people mention at the Frog Leg Festival, not the one they warn each other about.'},
+
  {id:'r1', pace:10, paceWhy:'Acre lots and long driveways — you walk more than you knock.', area:'hail', name:'Corey & Ramblebrook', town:'Malabar',
   why:'The NWS man who called in the hail was standing on Ramblebrook St. You are knocking the exact block that got reported.',
   center:[27.9400,-80.6000], d:0.013,
@@ -298,6 +337,28 @@ const ROUTES = [
    legends — they are what people tell each other, not history.
    ============================================================ */
 const CONTENT = {
+ near:{
+  history:[
+   {t:'Sebastian is named for the river, and the river for San Sebastián. The town grew out of fishing and citrus on the lagoon, and Sebastian Highlands — the grid you are walking — was platted as quarter-acre lots and sold the same way Palm Bay was.', s:'https://www.sebastianchamber.com/our-history/', sn:'Sebastian River Area Chamber'},
+   {t:'Twelve miles from the yard is the first national wildlife refuge in the United States. Theodore Roosevelt set Pelican Island aside on 14 March 1903, and Paul Kroegel — a German-born boat builder who had been guarding the birds himself — became its first warden.', s:'https://myfloridahistory.org/date-in-history/march-14-1903/pelican-island-national-wildlife-became-first-national-refuge', sn:'Florida Historical Society'},
+   {t:'Fellsmere is a small farming town west of the ridge, and Lakewood Park sits north of Fort Pierce off Kings Highway — both are inside your own service area, which is the whole point of this list.', s:'https://visitindianrivercounty.com/history/', sn:'Visit Indian River County'}
+  ],
+  legends:[
+   {t:'LEGEND — the treasure. The 1715 Spanish plate fleet went down along this coast, and people still walk these beaches after a storm looking for coins. Every family here has a cousin who found one.', s:'https://visitindianrivercounty.com/history/', sn:'Visit Indian River County'}
+  ],
+  heroes:[
+   {t:'Paul Kroegel — the man who stood between the pelicans and the plume hunters, and ended up starting the national refuge system twelve miles from your yard.', s:'https://myfloridahistory.org/date-in-history/march-14-1903/pelican-island-national-wildlife-became-first-national-refuge', sn:'Florida Historical Society'}
+  ],
+  landmarks:[
+   {t:'Pelican Island National Wildlife Refuge — the first one in the country.', s:'https://www.fws.gov/refuge/pelican-island', sn:'US Fish & Wildlife Service'},
+   {t:'The Sebastian riverfront, the working boats, and the causeway everybody fishes off.', s:'https://www.sebastianchamber.com/our-history/', sn:'Sebastian Chamber'}
+  ],
+  openers:[
+   'Sebastian: “I am out of Vero — twenty minutes up the road. Were you here when the hail came through in May?”',
+   'Fellsmere: “Small town. Does word still get around here faster than the mail?”',
+   'Lakewood Park: “I am right down the road in Vero. Did anything come down here in August?”'
+  ]
+ },
  hail:{
   history:[
    {t:'Malabar was settled in the late 1800s and incorporated in 1962. It had 634 people in 1970 and 2,949 in 2020 — so most of the people you knock on moved in after the town already existed.', s:'https://en.wikipedia.org/wiki/Malabar,_Florida', sn:'Malabar, Florida'},
@@ -436,6 +497,10 @@ var S = { mode:'overview', area:'all', base:'map', route:null, doors:[], blocks:
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function qs(o){ var a=[]; for(var k in o){ a.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); } return a.join('&'); }
+function lossOf(r){
+  var a = AREAS.filter(function(x){ return x.id===r.area; })[0];
+  return r.loss || (a && a.loss);
+}
 function daysLeft(iso){
   var loss = new Date(iso+'T12:00:00'), end = new Date(loss.getTime());
   end.setFullYear(end.getFullYear()+1);
@@ -458,7 +523,7 @@ function fetchParcels(r){
     if(j.error) throw new Error(j.error.message||'record service error');
     return (j.features||[]).map(function(f){
       var a=f.attributes, c=f.centroid||{};
-      return { id:a.PARCEL_ID, ad:(a.PHY_ADDR1||'').trim(), city:(a.PHY_CITY||'').trim(),
+      return { id:a.PARCEL_ID, ad:(a.PHY_ADDR1||'').replace(/\s+/g,' ').trim(), city:(a.PHY_CITY||'').trim(),
                zip:(a.PHY_ZIPCD||''), yr:a.ACT_YR_BLT||a.EFF_YR_BLT||0, jv:a.JV||0,
                sf:a.TOT_LVG_AR||0, own:(a.OWN_NAME||'').trim(), lat:c.y, lon:c.x };
     }).filter(function(p){ return p.lat && p.ad; });
@@ -595,7 +660,7 @@ function goOverview(){
   S.mode = 'overview'; S.route = null; S.doors = []; S.blocks = []; S.bi = 0;
   document.getElementById('backbtn').style.display = 'none';
   document.getElementById('tb-title').innerHTML = '<b>The Street Book</b><small>Covenant Builders &middot; where the storm hit</small>';
-  renderFilters(); renderOverview(); paintMap(); snap('half');
+  renderFilters(); renderOverview(); paintMap(); snap('hidden');
 }
 function focusRoute(id){
   S.route = ROUTES.filter(function(r){ return r.id===id; })[0];
@@ -603,9 +668,9 @@ function focusRoute(id){
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
   document.getElementById('backbtn').style.display = 'block';
   document.getElementById('tb-title').innerHTML =
-    '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(a.loss)+' days to file</small>';
+    '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(lossOf(S.route))+' days to file</small>';
   if(S.map) S.map.jumpTo({ center:[S.route.center[1], S.route.center[0]], zoom:14.5 });
-  snap('half');
+  snap('peek');
   var cached = cacheGet(S.route.id);
   if(cached){ S.doors = orderDoors(cached, S.route); afterLoad(); }
   else { document.getElementById('sheetbody').innerHTML = '<div class="loading">Pulling the county records for these streets…</div>'; renderRouteHead(); }
@@ -637,9 +702,12 @@ function afterLoad(){
 /* ---------- the sheet slides like a maps app ---------- */
 function snap(state){
   var el = document.getElementById('sheet');
-  el.className = state === 'full' ? 'full' : (state === 'half' ? 'half' : '');
+  el.className = state === 'full' ? 'full' : (state === 'half' ? 'half' : (state === 'peek' ? 'peek' : 'hidden'));
   S.snap = state;
+  var pill = document.getElementById('opensheet');
+  if(pill) pill.style.display = (state === 'hidden') ? 'flex' : 'none';
 }
+function openSheet(){ snap(S.snap === 'hidden' ? 'half' : 'full'); }
 function initSheet(){
   var el = document.getElementById('sheet'), grab = document.getElementById('grab');
   var y0 = null, t0 = 0;
@@ -648,8 +716,10 @@ function initSheet(){
     if(y0 === null) return;
     var dy = e.clientY - y0, quick = (Date.now()-t0) < 400;
     y0 = null;
-    if(dy < -30 || (quick && dy < -8)) snap(S.snap === 'half' ? 'full' : (S.snap === 'full' ? 'full' : 'half'));
-    else if(dy > 30) snap(S.snap === 'full' ? 'half' : 'peek');
+    var up = ['hidden','peek','half','full'];
+    var i = Math.max(0, up.indexOf(S.snap));
+    if(dy < -30 || (quick && dy < -8)) snap(up[Math.min(3, i+1)]);
+    else if(dy > 30) snap(up[Math.max(0, i-1)]);
     else snap(S.snap === 'full' ? 'half' : 'full');
   });
 }
@@ -751,42 +821,75 @@ function buildMap(){
 }
 function locateMe(){ if(S.geo) S.geo.trigger(); }
 
-/* empty sources + layers, rebuilt after every style change */
+/* Sources and layers, rebuilt after every style change.
+   Dots, not billboards: a circle layer for the marks and a symbol layer for the
+   names, so MapLibre's own collision engine drops a label instead of stacking
+   two on top of each other. */
+var FONT = ['Noto Sans Regular'];
 function addOverlays(){
   var m = S.map;
-  if(!m.getSource('line')){
-    m.addSource('line', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
-    m.addLayer({ id:'line-case', type:'line', source:'line',
-      paint:{ 'line-color':'#12182B', 'line-width':6, 'line-opacity':.55 },
-      layout:{ 'line-cap':'round', 'line-join':'round' } });
-    m.addLayer({ id:'line-dash', type:'line', source:'line',
-      paint:{ 'line-color':'#c4a574', 'line-width':2.5, 'line-dasharray':[2,2] },
-      layout:{ 'line-cap':'round', 'line-join':'round' } });
-  }
   if(!m.getSource('rings')){
-    m.addSource('rings', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
-    m.addLayer({ id:'rings-fill', type:'fill', source:'rings',
-      paint:{ 'fill-color':'#d4a24c', 'fill-opacity':.08 } });
-    m.addLayer({ id:'rings-line', type:'line', source:'rings',
-      paint:{ 'line-color':'#d4a24c', 'line-width':1, 'line-opacity':.6 } });
+    m.addSource('rings', { type:'geojson', data:fc() });
+    m.addLayer({ id:'rings-fill', type:'fill', source:'rings', paint:{ 'fill-color':'#d4a24c', 'fill-opacity':.07 } });
+    m.addLayer({ id:'rings-line', type:'line', source:'rings', paint:{ 'line-color':'#d4a24c', 'line-width':1, 'line-opacity':.5 } });
+  }
+  if(!m.getSource('line')){
+    m.addSource('line', { type:'geojson', data:fc() });
+    m.addLayer({ id:'line-case', type:'line', source:'line',
+      paint:{ 'line-color':'#12182B', 'line-width':5, 'line-opacity':.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
+    m.addLayer({ id:'line-dash', type:'line', source:'line',
+      paint:{ 'line-color':'#c4a574', 'line-width':2, 'line-dasharray':[2,2] }, layout:{ 'line-cap':'round', 'line-join':'round' } });
   }
   if(!m.getSource('doors')){
-    m.addSource('doors', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    m.addSource('doors', { type:'geojson', data:fc() });
     m.addLayer({ id:'doors', type:'circle', source:'doors', paint:{
       'circle-radius':['interpolate',['linear'],['zoom'], 13,3, 16,6, 19,11],
       'circle-color':['get','color'],
-      'circle-stroke-width':['case',['==',['get','mark'],''],1.4,3],
+      'circle-stroke-width':['case',['==',['get','mark'],''],1.2,2.5],
       'circle-stroke-color':['match',['get','mark'],'k','#3f7d52','l','#12182B','n','#9aa3b8','#ffffff'],
       'circle-opacity':['case',['==',['get','mark'],'n'],.35,.95] } });
-    m.addLayer({ id:'doorno', type:'symbol', source:'doors', minzoom:17.5, layout:{
-      'text-field':['get','n'], 'text-size':10, 'text-offset':[0,-1.1], 'text-allow-overlap':false },
+    m.addLayer({ id:'doorno', type:'symbol', source:'doors', minzoom:17.5,
+      layout:{ 'text-field':['get','n'], 'text-font':FONT, 'text-size':10, 'text-offset':[0,-1.2] },
       paint:{ 'text-color':'#12182B', 'text-halo-color':'#fff', 'text-halo-width':1.4 } });
+  }
+  if(!m.getSource('storms')){
+    m.addSource('storms', { type:'geojson', data:fc() });
+    m.addLayer({ id:'storms-dot', type:'circle', source:'storms', paint:{
+      'circle-radius':['interpolate',['linear'],['zoom'], 7,4, 11,7, 15,10],
+      'circle-color':'#d4a24c', 'circle-stroke-color':'#12182B', 'circle-stroke-width':1.5, 'circle-opacity':.95 } });
+    m.addLayer({ id:'storms-lab', type:'symbol', source:'storms', minzoom:9.5,
+      layout:{ 'text-field':['get','mag'], 'text-font':FONT, 'text-size':11, 'text-offset':[0,1.1],
+               'text-anchor':'top', 'text-optional':true },
+      paint:{ 'text-color':'#7a5a15', 'text-halo-color':'#fff', 'text-halo-width':1.6 } });
+  }
+  if(!m.getSource('routes')){
+    m.addSource('routes', { type:'geojson', data:fc() });
+    m.addLayer({ id:'routes-dot', type:'circle', source:'routes', paint:{
+      'circle-radius':['case',['==',['get','kind'],'yard'],6,
+                       ['interpolate',['linear'],['zoom'], 7,5, 11,8, 15,10]],
+      'circle-color':['match',['get','kind'],'yard','#ffffff','fp','#6b4f2a','near','#3f7d52','hail','#12182B','#3d4a6b'],
+      'circle-stroke-color':['case',['==',['get','kind'],'yard'],'#12182B','#ffffff'],
+      'circle-stroke-width':2.5 } });
+    m.addLayer({ id:'routes-lab', type:'symbol', source:'routes', minzoom:8,
+      layout:{ 'text-field':['get','label'], 'text-font':FONT, 'text-size':11.5, 'text-offset':[0,1.1],
+               'text-anchor':'top', 'text-optional':true, 'text-max-width':9, 'text-padding':4 },
+      paint:{ 'text-color':'#12182B', 'text-halo-color':'#ffffff', 'text-halo-width':2 } });
+    ['routes-dot','routes-lab'].forEach(function(id){
+      m.on('click', id, function(e){ var f=e.features[0]; if(f.properties.kind!=='yard') focusRoute(f.properties.id); });
+      m.on('mouseenter', id, function(){ m.getCanvas().style.cursor='pointer'; });
+      m.on('mouseleave', id, function(){ m.getCanvas().style.cursor=''; });
+    });
+    m.on('click', 'storms-dot', function(e){
+      var p = e.features[0].properties;
+      new maplibregl.Popup({ offset:12 }).setLngLat(e.features[0].geometry.coordinates)
+        .setHTML('<b>'+esc(p.mag)+' '+esc(p.kind)+'</b><br>'+esc(p.t)+'<br>'+esc(p.txt)).addTo(m);
+    });
   }
 }
 function clearMarkers(){ MARKERS.forEach(function(m){ m.remove(); }); MARKERS = []; }
-function pinEl(html){ var d = document.createElement('div'); d.innerHTML = html; return d.firstChild; }
 function setData(id, data){ var s = S.map.getSource(id); if(s) s.setData(data); }
-function fc(f){ return { type:'FeatureCollection', features:f }; }
+function fc(f){ return { type:'FeatureCollection', features:f||[] }; }
+function pt(lat, lon, props){ return { type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:props }; }
 function ring(lat, lon, miles){
   var pts = [], R = miles/69;
   for(var i=0;i<=48;i++){
@@ -795,47 +898,43 @@ function ring(lat, lon, miles){
   }
   return { type:'Feature', geometry:{ type:'Polygon', coordinates:[pts] }, properties:{} };
 }
-function fit(pts, pad){
+function fit(pts){
   if(!pts.length) return;
   var w=180, s=90, e=-180, n=-90;
   pts.forEach(function(p){ w=Math.min(w,p[1]); e=Math.max(e,p[1]); s=Math.min(s,p[0]); n=Math.max(n,p[0]); });
   /* duration 0 on purpose: an animated camera move stalls whenever the tab is
      not in front, and a map that did not move is worse than one that jumped */
-  try{ S.map.fitBounds([[w,s],[e,n]], { padding:{ top:110, bottom:Math.round(window.innerHeight*0.46), left:40, right:40 }, duration:0, maxZoom:17.5 }); }catch(err){}
+  var bottom = (S.snap === 'half' || S.snap === 'full') ? Math.round(window.innerHeight*0.46) : 130;
+  try{ S.map.fitBounds([[w,s],[e,n]], { padding:{ top:110, bottom:bottom, left:40, right:40 }, duration:0, maxZoom:17.5 }); }catch(err){}
 }
 
 /* ---------- overview: every route on one map ---------- */
 function paintOverview(){
   if(!S.styled) return;
   clearMarkers();
-  setData('doors', fc([])); setData('line', fc([]));
-  var pts = [], rings = [];
+  setData('doors', fc()); setData('line', fc());
+  var pts = [], rings = [], storms = [], routes = [];
   AREAS.forEach(function(a){
     if(S.area !== 'all' && S.area !== a.id) return;
-    a.reports.forEach(function(rep){
+    (a.reports||[]).forEach(function(rep){
       pts.push([rep.lat, rep.lon]);
       rings.push(ring(rep.lat, rep.lon, 7));
-      MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="stormpin">'+esc(rep.mag)+'</div>') })
-        .setLngLat([rep.lon, rep.lat])
-        .setPopup(new maplibregl.Popup({ offset:14 }).setHTML(
-          '<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)))
-        .addTo(S.map));
+      storms.push(pt(rep.lat, rep.lon, { mag:rep.mag, kind:(rep.kind==='hail'?'hail':'wind'), t:rep.t, txt:rep.txt }));
     });
   });
   setData('rings', fc(rings));
+  setData('storms', fc(storms));
   ROUTES.forEach(function(r){
     if(S.area !== 'all' && S.area !== r.area) return;
     pts.push(r.center);
     var cached = cacheGet(r.id), d = cached ? orderDoors(cached, r) : [];
     var done = 0; d.forEach(function(p){ if(markOf(p.id, r.id)) done++; });
-    var el = pinEl('<div class="pin'+(r.area==='fp'?' fp':'')+'">'+esc(r.name)+
-      '<small>'+(d.length ? d.length+' doors'+(done?' &middot; '+done+' done':'') : 'tap to load')+'</small></div>');
-    el.addEventListener('click', function(ev){ ev.stopPropagation(); focusRoute(r.id); });
-    MARKERS.push(new maplibregl.Marker({ element:el }).setLngLat([r.center[1], r.center[0]]).addTo(S.map));
+    routes.push(pt(r.center[0], r.center[1], { id:r.id, kind:r.area,
+      label:r.name + (d.length ? '  ' + d.length : '') + (done ? ' \u00b7 ' + done + ' done' : '') }));
   });
-  MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="yardpin">The yard &middot; Vero Beach</div>') })
-    .setLngLat([YARD[1], YARD[0]]).addTo(S.map));
+  routes.push(pt(YARD[0], YARD[1], { id:'yard', kind:'yard', label:'The yard' }));
   pts.push(YARD);
+  setData('routes', fc(routes));
   fit(pts);
 }
 
@@ -843,16 +942,13 @@ function paintOverview(){
 function paintRoute(){
   if(!S.styled) return;
   clearMarkers();
-  setData('rings', fc([]));
+  setData('rings', fc());
   var shown = vis(), pts = [], feats = [], line = [];
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
-  a.reports.forEach(function(rep){
-    MARKERS.push(new maplibregl.Marker({ element: pinEl('<div class="stormpin">'+esc(rep.mag)+'</div>') })
-      .setLngLat([rep.lon, rep.lat])
-      .setPopup(new maplibregl.Popup({ offset:14 }).setHTML(
-        '<b>'+esc(rep.mag)+' '+(rep.kind==='hail'?'hail':'wind')+'</b><br>'+esc(rep.t)+'<br>'+esc(rep.txt)))
-      .addTo(S.map));
-  });
+  setData('routes', fc());
+  setData('storms', fc((a.reports||[]).map(function(rep){
+    return pt(rep.lat, rep.lon, { mag:rep.mag, kind:(rep.kind==='hail'?'hail':'wind'), t:rep.t, txt:rep.txt });
+  })));
   shown.forEach(function(p, i){
     if(!p.lat) return;
     pts.push([p.lat, p.lon]); line.push([p.lon, p.lat]);
@@ -914,10 +1010,12 @@ function renderFilters(){
 function setArea(id){ S.area = id; renderFilters(); renderOverview(); paintMap(); }
 
 /* ---------- overview sheet: the routes, nearest first ---------- */
+function driveFrom(a, r){ var road = miles(a, r.center)*1.3; return { mi:road, min:Math.round(road/45*60)+8 }; }
 function renderOverview(){
-  var from = S.me || YARD, list = ROUTES.filter(function(r){ return S.area==='all' || S.area===r.area; });
-  list = list.map(function(r){ return { r:r, mi: miles(from, r.center)*1.3 }; })
-             .sort(function(a,b){ return a.mi - b.mi; });
+  var from = S.me || YARD;
+  var list = ROUTES.filter(function(r){ return S.area==='all' || S.area===r.area; })
+    .map(function(r){ var dv = driveFrom(from, r); return { r:r, mi:dv.mi, min:dv.min }; })
+    .sort(function(a,b){ return a.mi - b.mi; });
   var totalDoors = 0, totalMarks = 0;
   ROUTES.forEach(function(r){
     var c = cacheGet(r.id);
@@ -926,42 +1024,46 @@ function renderOverview(){
     totalDoors += d.length;
     d.forEach(function(p){ if(markOf(p.id, r.id)) totalMarks++; });
   });
+  var pill = document.getElementById('pillsub');
+  if(pill) pill.textContent = list.length + ' walks';
 
   document.getElementById('sheethead').innerHTML =
-    '<h2 class="big">Where the storm hit</h2>'+
-    '<p class="sub">Ten walks across three storms. '+
-    (totalDoors ? totalDoors+' doors loaded, '+totalMarks+' marked.' : 'Tap a route to pull its doors.')+'</p>';
+    '<h2 class="big">Shortest drive first</h2>'+
+    '<p class="sub">' + (S.me ? 'From where you are standing' : 'From the yard in Vero Beach') + ' &middot; ' +
+    (totalDoors ? totalDoors+' doors loaded, '+totalMarks+' marked' : 'tap a route to pull its doors') + '</p>';
 
   var h = '';
   list.forEach(function(x){
-    var r = x.r, a = AREAS.filter(function(y){ return y.id===r.area; })[0];
-    var c = cacheGet(r.id), n = c ? orderDoors(c, r).length : 0;
-    var blocks = n ? makeBlocks(orderDoors(c, r), blockTarget(r)).length : 0;
-    var done = 0;
-    if(c) orderDoors(c, r).forEach(function(p){ if(markOf(p.id, r.id)) done++; });
+    var r = x.r, c = cacheGet(r.id), d = c ? orderDoors(c, r) : [];
+    var blocks = d.length ? makeBlocks(d, blockTarget(r)).length : 0;
+    var done = 0; d.forEach(function(p){ if(markOf(p.id, r.id)) done++; });
     h += '<button class="rowbtn" onclick="focusRoute(\''+r.id+'\')">'+
-      '<span class="rowdot" style="background:'+(r.area==='fp'?'#6b4f2a':(r.area==='hail'?'#12182B':'#3d4a6b'))+'">'+
+      '<span class="rowdot" style="background:'+(r.area==='fp'?'#6b4f2a':(r.area==='near'?'#3f7d52':(r.area==='hail'?'#12182B':'#3d4a6b')))+'">'+
         Math.round(x.mi)+'<span style="font-size:8px">mi</span></span>'+
-      '<span class="rowtxt"><b>'+esc(r.name)+'</b>'+
-      '<small>'+esc(r.town)+' &middot; '+(n ? n+' doors &middot; '+blocks+' afternoon'+(blocks>1?'s':'')+(done?' &middot; '+done+' marked':'') : 'tap to load')+
-      ' &middot; '+daysLeft(a.loss)+'d to file</small></span>'+
+      '<span class="rowtxt"><b>'+esc(r.name)+(r.radar?' <span class="chip radar" style="font-size:10px;padding:1px 6px">radar only</span>':'')+'</b>'+
+      '<small>'+esc(r.town)+' &middot; '+x.min+' min drive'+
+      (d.length ? ' &middot; '+d.length+' doors &middot; '+blocks+' afternoon'+(blocks>1?'s':'')+(done?' &middot; '+done+' marked':'') : ' &middot; tap to load')+
+      ' &middot; '+daysLeft(lossOf(r))+'d to file</small></span>'+
       '<span class="rowgo">&rsaquo;</span></button>';
   });
   h += '<h3 class="sec">Before you knock</h3>'+
-    '<div class="warn"><b>Florida wants a permit for cold doors.</b> A “home solicitation sale” needs a permit from the <b>Clerk of Court in that county</b> — F.S. 501.022. Brevard charges $100 plus a $24 background check and takes fingerprints. Contractors are not on the exemption list. <b>Invited visits are.</b></div>'+
+    '<div class="warn"><b>Florida wants a permit for cold doors.</b> A \u201chome solicitation sale\u201d needs a permit from the <b>Clerk of Court in that county</b> \u2014 F.S. 501.022. Brevard charges $100 plus a $24 background check and takes fingerprints. Contractors are not on the exemption list. <b>Invited visits are.</b></div>'+
     '<ul>'+
     '<li><b>You cannot sign a roof.</b> F.S. 489.113(3) makes a Certified Building Contractor subcontract roofing, and there is no approved roofer on the bench yet.</li>'+
-    '<li><b>Never say “you have damage”</b> before you have been on the roof, and never say what insurance will cover. The carrier decides.</li>'+
-    '<li><b>F.S. 489.147</b> — no paying or waiving deductibles, no gifts for signing, no referral money, no reading the policy for them.</li>'+
+    '<li><b>Never say \u201cyou have damage\u201d</b> before you have been on the roof, and never say what insurance will cover. The carrier decides.</li>'+
+    '<li><b>F.S. 489.147</b> \u2014 no paying or waiving deductibles, no gifts for signing, no referral money, no reading the policy for them.</li>'+
+    '<li><b>Green dots are radar only.</b> Nobody on the ground reported hail there. Knock those with a question, not a claim.</li>'+
     '</ul>'+
-    '<p class="src">Map: OpenStreetMap and CARTO · Imagery: Esri and USDA NAIP via USGS · Property records: Florida Department of Revenue 2025 tax roll · Storms: NWS local storm reports. All open access — no account, no key, no bill.</p>'+
-    '<p class="src"><b>Covenant Builders</b> · CBC1253676 · (772) 473-7115 · Hablamos español.</p>';
+    '<p class="src">Map: MapLibre over OpenStreetMap (OpenFreeMap) &middot; Imagery: Esri and USDA NAIP via USGS &middot; Property records: Florida Department of Revenue 2025 tax roll &middot; Storms: NWS local storm reports. All open access \u2014 no account, no key, no bill.</p>'+
+    '<p class="src"><b>Covenant Builders</b> &middot; CBC1253676 &middot; (772) 473-7115 &middot; Hablamos espa\u00f1ol.</p>';
   document.getElementById('sheetbody').innerHTML = h;
 }
 
 /* ---------- route sheet ---------- */
 function renderRouteHead(){
   var r = S.route, d = vis(), near = nearestDoor();
+  var pillsub = document.getElementById('pillsub');
+  if(pillsub) pillsub.textContent = (d.length ? d.length+' doors' : 'loading');
   var h = '<h2 class="big">'+esc(r.name)+'</h2>'+
     '<p class="sub">'+esc(r.town)+(S.blocks.length>1 ? ' · block '+(S.bi+1)+' of '+S.blocks.length : '')+
     (d.length ? ' · '+d.length+' doors' : '')+
@@ -1088,7 +1190,7 @@ function sheetFor(b, i){
   var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0], pl = plan(b);
   var h = '<div class="pg"><h2>'+esc(r.name)+' — '+esc(r.town)+
     (S.blocks.length>1 ? ' — block '+(i+1)+' of '+S.blocks.length : '')+'</h2>'+
-    '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(a.loss)+' days left to file · '+
+    '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(lossOf(r))+' days left to file · '+
     b.length+' doors · '+pl.pace+' an hour · knock '+clock(pl.start)+' to '+clock(pl.end)+' · dark at '+clock(pl.dark)+'</p>'+
     '<p class="pl">Covenant Builders · CBC1253676 · (772) 473-7115 · never say a roof has damage before you have been on it · the carrier decides the claim</p>'+
     '<table class="sheet"><tr><th>#</th><th>Address</th><th>Owner of record</th><th>Built</th><th>Knock</th><th>Out</th><th>Name / number / notes</th></tr>';
