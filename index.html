@@ -864,9 +864,13 @@ function addOverlays(){
   }
   if(!m.getSource('routes')){
     m.addSource('routes', { type:'geojson', data:fc() });
+    /* a zoom expression has to sit at the top of the property — nesting one
+       inside a case makes MapLibre reject the whole layer, silently */
     m.addLayer({ id:'routes-dot', type:'circle', source:'routes', paint:{
-      'circle-radius':['case',['==',['get','kind'],'yard'],6,
-                       ['interpolate',['linear'],['zoom'], 7,5, 11,8, 15,10]],
+      'circle-radius':['interpolate',['linear'],['zoom'],
+        7,  ['match',['get','kind'],'yard',4,5],
+        11, ['match',['get','kind'],'yard',5,8],
+        15, ['match',['get','kind'],'yard',6,10]],
       'circle-color':['match',['get','kind'],'yard','#ffffff','fp','#6b4f2a','near','#3f7d52','hail','#12182B','#3d4a6b'],
       'circle-stroke-color':['case',['==',['get','kind'],'yard'],'#12182B','#ffffff'],
       'circle-stroke-width':2.5 } });
