@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#12182B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>The Street Book — Covenant Builders</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Street Book">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.6.0/maplibre-gl.min.css">
 <style>
 :root{
@@ -1210,6 +1214,17 @@ function renderPrint(all){
   document.getElementById('print').innerHTML = out;
 }
 function printSheet(all){ renderPrint(all); window.print(); }
+
+/* ---------- keep working when the signal does not ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+    var reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(reloaded) return; reloaded = true; location.reload();
+    });
+  });
+}
 
 /* ---------- go ---------- */
 buildMap();
