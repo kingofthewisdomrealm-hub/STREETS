@@ -241,6 +241,14 @@ const AREAS = [
   ]
  },
  {
+  id:'open', name:'Roofs going up now', when:'Brevard County permit book, read 14 September 2026',
+  head:'Not a storm. A pattern in the permit book.',
+  blurb:'These four are not here because the weather service logged hail. They are here because Brevard County\u2019s own permit book says roofs are coming off right now \u2014 169 permits pulled, paid for, and not yet signed off. There is no confirmed storm date for these ZIPs, so there is no filing clock and there is no damage to claim. The pitch is the street, not the storm: half the block is getting a new roof, would you like me to look at yours while I am here.',
+  zips:'32940 Viera \u00b7 32953 Merritt Island \u00b7 32927 Port St John',
+  score:'\u26a0 One to one and a half hours from the yard. The roofs are here; so is the windshield time. Block a whole day or do not come at all.',
+  reports:[]
+ },
+ {
   id:'fp', name:'Fort Pierce west', when:'28 February 2026', loss:'2026-02-28',
   head:'One inch of hail, one photograph, thirteen miles from the yard',
   blurb:'The closest storm to your yard and the smallest. One report: a picture on social media of quarter-sized hail off Orange Ave west of the Florida Turnpike. One inch is the bottom edge of functional shingle damage. Knock this one with a question, never a claim.',
@@ -333,6 +341,35 @@ const ROUTES = [
   center:[27.4520,-80.3620], d:0.010,
   streets:['AVENUE J','AVENUE M','N 39TH ST','AVENUE I','N 27TH ST','AVENUE K','N 37TH ST','N 40TH ST'],
   park:'⚠ Be straight with yourself here: the 28 February hail was reported about five miles west of this grid. It is inside the seven-mile radius your Storm Map uses, and nobody on these streets phoned anything in. Knock it as a question, never as a claim — and ask what coverage they carry before you ever mention a roof, because an older house here may carry no wind coverage at all.'},
+
+ /* ---- the permit-led routes: added 14 Sep 2026 off the open-permit sweep ---- */
+ {id:'r14', area:'open', pace:13, paceWhy:'Late-90s and 2000s Viera lots, sidewalks both sides, normal spacing.',
+  name:'Carmel & Myrtlewood', town:'Viera, Melbourne 32940',
+  why:'Seven roof permits are OPEN inside half a mile here \u2014 pulled and not signed off. Three of them sit on Carmel Dr alone. 32940 has 44 open permits, more than any other ZIP in the county, and 339 reroofs since March. Nobody logged hail here. The roofs are still coming off.',
+  center:[28.23228,-80.68850], d:0.011,
+  streets:['CARMEL DR','MYRTLEWOOD RD','MYRTLEWOOD LN','MONTEREY CT','OSPREY DR','KIMBERLY DR','AUTUMN GLEN DR'],
+  park:'Park on Carmel and work it one side at a time. Fifty-seven miles from the yard \u2014 this is a whole-day route, not an evening. Golf-course subdivision: people are polite, gates are rare, and nobody is home before five.'},
+
+ {id:'r15', area:'open', pace:13, paceWhy:'Cypress Trace and the lake streets \u2014 2000s Viera, tight frontages.',
+  name:'Cypress Trace & Spring Lake', town:'Viera, Melbourne 32940',
+  why:'Eight open permits inside half a mile, spread across eight different streets \u2014 that is a whole neighbourhood turning over, not one contractor doing a block. 1140 Cypress Trace Dr had its permit pulled three days ago and the crew has not been yet.',
+  center:[28.21841,-80.69267], d:0.011,
+  streets:['CYPRESS TRACE DR','SPRING LAKE DR','PINE ISLAND DR','RIDGE LAKE DR','SILVER LAKE DR','KERRY DOWNS CIR','NELSON DR'],
+  park:'Start on Cypress Trace, the longest run of doors. Same drive as Carmel \u2014 do the two together or do neither.'},
+
+ {id:'r16', area:'open', pace:13, paceWhy:'1960s space-boom ranch houses, quarter-acre lots, carports.',
+  name:'Artemis & Montego Bay', town:'Merritt Island 32953',
+  why:'Six open permits within half a mile, two of them on Artemis Blvd. 32953 has 19 open and 159 reroofs since March. These are sixties houses \u2014 the ones NASA built this island for \u2014 and the roofs are the right age whatever the weather did.',
+  center:[28.38003,-80.69609], d:0.012,
+  streets:['ARTEMIS BLVD','N MONTEGO BAY DR','DIANA BLVD','VEGA AVE','MERCURY ST','SATURN ST','VENUS ST','MARS ST'],
+  park:'Park off Diana Blvd. Long straight streets, easy to walk one kerb and come back down the other. Sixty miles from the yard.'},
+
+ {id:'r17', area:'open', pace:14, paceWhy:'Seventies and eighties starter houses, close together, people out front.',
+  name:'Holden & Greenhill', town:'Port St John, Cocoa 32927',
+  why:'Ten open permits across two clusters here, and 203 reroofs in 32927 since March \u2014 second only to Viera. Modest houses, original owners in a lot of them, and the whole place doubled in population between 2010 and 2020. Skip Grissom Pkwy and Fay Blvd: those are four-lane roads, not doors.',
+  center:[28.47600,-80.80600], d:0.012,
+  streets:['HOLDEN RD','GREENHILL ST','JAMAICA RD','FLINT RD','ALFRED ST','CURTIS BLVD','HUDSON RD','CARRICK RD'],
+  park:'Park on Holden. The furthest route in the book \u2014 sixty-five miles, about ninety minutes. Only worth it if you are already up this way.'},
 ];
 </script>
 <script>
@@ -341,6 +378,32 @@ const ROUTES = [
    legends — they are what people tell each other, not history.
    ============================================================ */
 const CONTENT = {
+ open:{
+  history:[
+   {t:'You are standing on a celery farm. Andrew Duda, a Slovak immigrant, started the family firm in 1926 with one cash crop \u2014 celery. In the early 1940s his three sons bought a 43,000-acre tract in Brevard County. That tract is Viera. The master plan for the community was not announced until 1989, which means the ground under these houses was farmed for half a century first.', s:'https://viera.com/live-here/our-beginnings', sn:'The Viera Company'},
+   {t:'Merritt Island first shows up on a map in 1605 and takes its name from a Spanish land grant to a man called Merritt. Douglas Dummitt found wild citrus here, planted more, and started shipping fruit north in 1828 \u2014 he is the father of the Indian River citrus trade you sell against every day.', s:'https://www.florida-backroads-travel.com/merritt-island-florida.html', sn:'Florida Backroads Travel'},
+   {t:'The space race built these streets. Brevard County went from 111,435 people in 1960 to 230,006 in 1970 \u2014 the fastest-growing county in the United States that decade, and most of it landed on Merritt Island. Between 1962 and 1964 NASA bought more than 80,000 acres and wiped three towns off the map: Allenhurst, Clifton and Courtenay.', s:'https://www.florida-backroads-travel.com/merritt-island-florida.html', sn:'Florida Backroads Travel'},
+   {t:'Port St John nearly doubled between the last two censuses \u2014 12,267 people in 2010, 23,474 in 2020. It is not a city. Residents voted incorporation down in November 2002, 73 per cent to 27, and it has stayed unincorporated ever since. That is exactly why the county permits it and you can see the records.', s:'https://en.wikipedia.org/wiki/Port_St._John,_Florida', sn:'Wikipedia, 2020 Census figures'}
+  ],
+  legends:[
+   {t:'LEGEND \u2014 the bust nobody talks about. After Apollo 11 landed in 1969, employment at Kennedy Space Center fell from 23,500 to 16,500 inside a year and thousands of houses here went into foreclosure. Old-timers on these streets bought at the bottom of that. Do not be the second person that week to knock on a door in a neighbourhood that remembers being abandoned.', s:'https://www.florida-backroads-travel.com/merritt-island-florida.html', sn:'Florida Backroads Travel'},
+   {t:'LEGEND \u2014 the street names. Artemis, Diana, Vega, Mercury, Saturn, Venus, Mars. Everybody on the island will tell you the plat was named for the space programme. It reads that way and the timing fits, but treat it as neighbourhood lore, not documented fact \u2014 and let them tell you, do not tell them.', s:'https://www.florida-backroads-travel.com/merritt-island-florida.html', sn:'Context only \u2014 the naming itself is unsourced'}
+  ],
+  heroes:[
+   {t:'Andrew Duda arrived from Slovakia with nothing and started with celery in 1926. Four generations later the family still owns the land and still farms; Viera is what they did with a corner of it. If you want one sentence that lands in this zip code, it is that somebody farmed here first.', s:'https://viera.com/live-here/our-beginnings', sn:'The Viera Company'},
+   {t:'Douglas Dummitt planted the first commercial citrus grove on Merritt Island and shipped fruit north starting in 1828, founding the Indian River brand. Two hundred years later that name is still on the fruit.', s:'https://www.florida-backroads-travel.com/merritt-island-florida.html', sn:'Florida Backroads Travel'}
+  ],
+  landmarks:[
+   {t:'Atlantis Elementary in Port St John was named one of the top twelve schools in the country for character, culture and achievement in 2009, and held an A rating from 2000 to 2009. Parents here know that number.', s:'https://en.wikipedia.org/wiki/Port_St._John,_Florida', sn:'Wikipedia'},
+   {t:'Viera was named a Top 25 master-planned community in the United States in 2025. People who live here chose it on purpose and they will tell you why.', s:'https://viera.com/live-here/our-beginnings', sn:'The Viera Company'}
+  ],
+  openers:[
+   '\u201cI am working on this street today \u2014 the county shows a few roof permits pulled around here in the last month. Mind if I look at yours from the ground?\u201d',
+   '\u201cSomebody told me this was all Duda celery fields before it was Viera. Is that right, or is that just what people say?\u201d',
+   '\u201cWere you here for the shuttle days, or did you come after?\u201d',
+   '\u201cI noticed a couple of houses on the block getting new roofs. I am not going to tell you yours needs one \u2014 I would just rather look than guess.\u201d'
+  ]
+ },
  near:{
   history:[
    {t:'Sebastian is named for the river, and the river for San Sebastián. The town grew out of fishing and citrus on the lagoon, and Sebastian Highlands — the grid you are walking — was platted as quarter-acre lots and sold the same way Palm Bay was.', s:'https://www.sebastianchamber.com/our-history/', sn:'Sebastian River Area Chamber'},
@@ -507,6 +570,13 @@ function lossOf(r){
   var a = AREAS.filter(function(x){ return x.id===r.area; })[0];
   return r.loss || (a && a.loss);
 }
+/* Some routes are permit-led, not storm-led: no confirmed storm means no
+   filing clock. Never invent one — say so instead. */
+function fileText(r, long){
+  var l = lossOf(r);
+  if(!l) return long ? 'no storm date — permit-led' : 'no storm clock';
+  return daysLeft(l) + (long ? ' days to file' : 'd to file');
+}
 function daysLeft(iso){
   var loss = new Date(iso+'T12:00:00'), end = new Date(loss.getTime());
   end.setFullYear(end.getFullYear()+1);
@@ -542,6 +612,25 @@ function cacheGet(id){
 }
 function cacheSet(id, rows){ try{ localStorage.setItem('sb:p:'+id, JSON.stringify({t:Date.now(), rows:rows})); }catch(e){} }
 
+/* Walk one side of the street, then come back down the other.
+   US house numbers put odds on one kerb and evens on the other, so that split
+   IS the two sides. Up the odd side low-to-high, cross once at the far end,
+   back down the even side high-to-low — you finish where you parked and you
+   never cross the road mid-block. */
+function oneSideThenTheOther(on){
+  var odd = [], even = [];
+  on.forEach(function(p){
+    var n = parseInt(p.ad, 10);
+    if(!n) { odd.push(p); return; }
+    (n % 2 ? odd : even).push(p);
+  });
+  var byNo = function(a,b){ return (parseInt(a.ad,10)||0) - (parseInt(b.ad,10)||0); };
+  odd.sort(byNo); even.sort(byNo);
+  if(!odd.length) return even;
+  if(!even.length) return odd;
+  return odd.concat(even.reverse());
+}
+
 /* ---------- the walk: streets in order, chained corner to corner ---------- */
 function orderDoors(rows, r){
   var groups = [];
@@ -551,8 +640,7 @@ function orderDoors(rows, r){
       return i > -1 && a.slice(i+1) === st;
     });
     if(!on.length) return;
-    on.sort(function(a,b){ return (parseInt(a.ad,10)||0) - (parseInt(b.ad,10)||0); });
-    groups.push(on);
+    groups.push(oneSideThenTheOther(on));
   });
   if(!groups.length) return [];
   var far = function(a,b){ var dx=(a.lat-b.lat)*111, dy=(a.lon-b.lon)*98; return dx*dx+dy*dy; };
@@ -679,7 +767,7 @@ function focusRoute(id){
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
   document.getElementById('backbtn').style.display = 'block';
   document.getElementById('tb-title').innerHTML =
-    '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+daysLeft(lossOf(S.route))+' days to file</small>';
+    '<b>'+esc(S.route.name)+'</b><small>'+esc(S.route.town)+' &middot; '+fileText(S.route, true)+'</small>';
   if(S.map) S.map.jumpTo({ center:[S.route.center[1], S.route.center[0]], zoom:14.5 });
   snap('peek');
   var cached = cacheGet(S.route.id);
@@ -845,13 +933,8 @@ function addOverlays(){
     m.addLayer({ id:'rings-fill', type:'fill', source:'rings', paint:{ 'fill-color':'#d4a24c', 'fill-opacity':.07 } });
     m.addLayer({ id:'rings-line', type:'line', source:'rings', paint:{ 'line-color':'#d4a24c', 'line-width':1, 'line-opacity':.5 } });
   }
-  if(!m.getSource('line')){
-    m.addSource('line', { type:'geojson', data:fc() });
-    m.addLayer({ id:'line-case', type:'line', source:'line',
-      paint:{ 'line-color':'#12182B', 'line-width':5, 'line-opacity':.5 }, layout:{ 'line-cap':'round', 'line-join':'round' } });
-    m.addLayer({ id:'line-dash', type:'line', source:'line',
-      paint:{ 'line-color':'#c4a574', 'line-width':2, 'line-dasharray':[2,2] }, layout:{ 'line-cap':'round', 'line-join':'round' } });
-  }
+  /* no walk line: he knocks one side of the street and comes back down the other,
+     so a string joining house to house across the road was noise, not a route */
   if(!m.getSource('rrdoors')){
     /* doors that already got a new roof — drawn under the live doors, dim */
     m.addSource('rrdoors', { type:'geojson', data:fc() });
@@ -962,7 +1045,7 @@ function fit(pts){
 function paintOverview(){
   if(!S.styled) return;
   clearMarkers();
-  setData('doors', fc()); setData('line', fc()); setData('rrdoors', fc());
+  setData('doors', fc()); setData('rrdoors', fc());
   var pts = [], rings = [], storms = [], routes = [];
   AREAS.forEach(function(a){
     if(S.area !== 'all' && S.area !== a.id) return;
@@ -993,7 +1076,7 @@ function paintRoute(){
   if(!S.styled) return;
   clearMarkers();
   setData('rings', fc());
-  var shown = vis(), pts = [], feats = [], line = [];
+  var shown = vis(), pts = [], feats = [];
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
   setData('routes', fc());
   setData('storms', fc((a.reports||[]).map(function(rep){
@@ -1001,7 +1084,7 @@ function paintRoute(){
   })));
   shown.forEach(function(p, i){
     if(!p.lat) return;
-    pts.push([p.lat, p.lon]); line.push([p.lon, p.lat]);
+    pts.push([p.lat, p.lon]);
     feats.push({ type:'Feature', geometry:{ type:'Point', coordinates:[p.lon, p.lat] },
       properties:{ id:p.id, n:String(i+1), ad:p.ad, own:p.own||'', yr:p.yr||0, sf:p.sf||0,
                    color:ERA_COLOR[era(p.yr)], mark:markOf(p.id) } });
@@ -1010,7 +1093,6 @@ function paintRoute(){
   /* the ones we took off the list, so you can still see them */
   setData('rrdoors', fc((S.doors||[]).filter(function(p){ return p.rr && p.lat && shown.indexOf(p) < 0; })
     .map(function(p){ return pt(p.lat, p.lon, { ad:p.ad, when:ymLabel(p.rr) }); })));
-  setData('line', fc(line.length ? [{ type:'Feature', geometry:{ type:'LineString', coordinates:line }, properties:{} }] : []));
   fit(pts);
 }
 function doorPopup(f){
@@ -1423,7 +1505,7 @@ function renderOverview(){
       '<span class="rowtxt"><b>'+esc(r.name)+(r.radar?' <span class="chip radar" style="font-size:10px;padding:1px 6px">radar only</span>':'')+'</b>'+
       '<small>'+esc(r.town)+' &middot; '+x.min+' min drive'+
       (d.length ? ' &middot; '+d.length+' doors &middot; '+blocks+' afternoon'+(blocks>1?'s':'')+(done?' &middot; '+done+' marked':'') : ' &middot; tap to load')+
-      ' &middot; '+daysLeft(lossOf(r))+'d to file'+roofBadge(r)+rrBadge(r, c)+'</small></span>'+
+      ' &middot; '+fileText(r)+roofBadge(r)+rrBadge(r, c)+'</small></span>'+
       '<span class="rowgo">&rsaquo;</span></button>';
   });
   h += roofSection();
@@ -1689,7 +1771,7 @@ function sheetFor(b, i){
   var r = S.route, a = AREAS.filter(function(x){ return x.id===r.area; })[0], pl = plan(b);
   var h = '<div class="pg"><h2>'+esc(r.name)+' — '+esc(r.town)+
     (S.blocks.length>1 ? ' — block '+(i+1)+' of '+S.blocks.length : '')+'</h2>'+
-    '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+daysLeft(lossOf(r))+' days left to file · '+
+    '<p class="pl">'+esc(a.name)+' · '+esc(a.when)+' · '+fileText(r, true)+' · '+
     b.length+' doors · '+pl.pace+' an hour · knock '+clock(pl.start)+' to '+clock(pl.end)+' · dark at '+clock(pl.dark)+'</p>'+
     '<p class="pl">Covenant Builders · CBC1253676 · (772) 473-7115 · never say a roof has damage before you have been on it · the carrier decides the claim</p>'+
     proofCardHtml(b)+

@@ -2,7 +2,7 @@
    The shell is cached so the app opens with no signal. Map tiles and county
    records are cached as you look at them, so a route you have already opened
    still works in a dead spot. A route you have never opened will not. */
-var SHELL = 'streetbook-shell-v4';
+var SHELL = 'streetbook-shell-v5';
 var RUN   = 'streetbook-run-v1';
 var FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
              './icon-maskable.png', './apple-touch-icon.png', './roofs.json'];
