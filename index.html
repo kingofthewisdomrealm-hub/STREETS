@@ -896,11 +896,14 @@ function addOverlays(){
     /* roofs added BEFORE routes so route dots and door dots stay on top */
     m.addSource('roofs', { type:'geojson', data:fc() });
     m.addLayer({ id:'roofs-dot', type:'circle', source:'roofs', paint:{
-      'circle-radius':['interpolate',['linear'],['zoom'], 8,2.2, 12,3.6, 16,6.5],
-      'circle-color':['match',['get','bucket'],'new','#b3261e','mid','#e08a2e','#b9a99a'],
-      'circle-opacity':['match',['get','bucket'],'new',.95,'mid',.75,.45],
-      'circle-stroke-color':'#ffffff',
-      'circle-stroke-width':['match',['get','bucket'],'new',1.4,'mid',1,.6] } });
+      'circle-radius':['interpolate',['linear'],['zoom'],
+        8,  ['match',['get','bucket'],'open',3.4,2.2],
+        12, ['match',['get','bucket'],'open',5.4,3.6],
+        16, ['match',['get','bucket'],'open',9,6.5]],
+      'circle-color':['match',['get','bucket'],'open','#e07b00','new','#b3261e','mid','#e08a2e','#b9a99a'],
+      'circle-opacity':['match',['get','bucket'],'open',1,'new',.95,'mid',.75,.45],
+      'circle-stroke-color':['case',['==',['get','bucket'],'open'],'#12182B','#ffffff'],
+      'circle-stroke-width':['match',['get','bucket'],'open',2,'new',1.4,'mid',1,.6] } });
     m.on('click', 'roofs-dot', function(e){ roofPopup(e.features[0]); });
     m.on('mouseenter', 'roofs-dot', function(){ m.getCanvas().style.cursor='pointer'; });
     m.on('mouseleave', 'roofs-dot', function(){ m.getCanvas().style.cursor=''; });
@@ -1184,7 +1187,7 @@ function roofRow(r){
   return { lat:r[0], lon:r[1], age:roofAge(r[2]), val:r[4],
            ad:(r[5] ? r[5]+' ' : '') + (ROOFS.st[r[6]]||''),
            city:ROOFS.ct[r[7]]||'', zip:r[8],
-           who:c[0], lic:c[1], tel:c[2] };
+           who:c[0], lic:c[1], tel:c[2], pend:(r.length>9 ? r[9] : -1) };
 }
 function roofsNear(lat, lon, mi, days){
   if(!ROOFS.loaded) return 0;
@@ -1197,6 +1200,11 @@ function roofsNear(lat, lon, mi, days){
   }
   return n;
 }
+function pendingCount(){
+  if(!ROOFS.loaded) return 0;
+  var n=0; ROOFS.rows.forEach(function(r){ if(r.length>9 && r[9]===1) n++; });
+  return n;
+}
 function toggleRoofs(){ ROOFS.on = !ROOFS.on; paintRoofs(); renderFilters(); }
 
 function paintRoofs(){
@@ -1205,9 +1213,11 @@ function paintRoofs(){
   if(!src) return;
   if(!ROOFS.on || !ROOFS.loaded){ src.setData(fc()); return; }
   var feats = ROOFS.rows.map(function(r, i){
-    var age = roofAge(r[2]);
+    var age = roofAge(r[2]), p = (r.length>9 ? r[9] : -1);
+    /* an OPEN permit beats a fresh one: that roof has not gone on yet */
+    var bucket = p === 1 ? 'open' : (age<=30?'new':(age<=90?'mid':'old'));
     return { type:'Feature', geometry:{ type:'Point', coordinates:[r[1], r[0]] },
-             properties:{ i:i, age:age, bucket:(age<=30?'new':(age<=90?'mid':'old')) } };
+             properties:{ i:i, age:age, pend:p, bucket:bucket } };
   });
   src.setData(fc(feats));
 }
@@ -1218,7 +1228,10 @@ function roofPopup(f){
   var tel = r.tel ? r.tel.replace(/\D/g,'') : '';
   new maplibregl.Popup({ offset:12 }).setLngLat(f.geometry.coordinates)
     .setHTML('<b>'+esc(r.ad)+'</b><br><span style="color:#5b667c">'+esc(r.city)+' '+esc(r.zip)+'</span>'+
-      '<br><b style="color:#b3261e">Roof permit issued '+when+'</b>'+
+      '<br><b style="color:'+(r.pend===1?'#e07b00':'#b3261e')+'">'+
+        (r.pend===1 ? 'Roof permit OPEN — pulled '+when+', not signed off yet'
+                    : (r.pend===0 ? 'Roof finished — permit pulled '+when
+                                  : 'Roof permit issued '+when))+'</b>'+
       (r.val ? '<br>Job value about $'+(r.val*1000).toLocaleString() : '')+
       '<br>Roofer: '+esc(r.who||'—')+(r.lic?' &middot; '+esc(r.lic):'')+
       (tel ? '<br><a href="tel:'+tel+'">'+esc(r.tel)+'</a>' : '')+
@@ -1297,9 +1310,10 @@ function renderFilters(){
   if(ROOFS.loaded){
     var n30 = 0;
     for(var i=0;i<ROOFS.rows.length;i++) if(roofAge(ROOFS.rows[i][2]) <= 30) n30++;
+    var nOpen = pendingCount();
     h += '<button class="fchip'+(ROOFS.on?' on':'')+'" onclick="toggleRoofs()" '+
          'style="'+(ROOFS.on?'background:#b3261e;border-color:#b3261e':'')+'">'+
-         '\u25cf Roofs going up ('+n30+' this month)</button>';
+         '\u25cf Roofs going up ('+(nOpen?nOpen+' open now':n30+' this month')+')</button>';
   }
   document.getElementById('filters').innerHTML = h;
 }
@@ -1324,7 +1338,20 @@ function roofSection(){
     .sort(function(a,b){ return b[1]-a[1]; }).slice(0, 8);
   var crews = Object.keys(who).map(function(k){ return [k, who[k]]; })
     .sort(function(a,b){ return b[1]-a[1]; }).slice(0, 6);
-  var h = '<h3 class="sec">Where roofs are going up right now</h3>'+
+  var open = ROOFS.rows.filter(function(r){ return r.length>9 && r[9]===1; });
+  var openTown = {};
+  open.forEach(function(r){ var k=(ROOFS.ct[r[7]]||'')+' '+r[8]; openTown[k]=(openTown[k]||0)+1; });
+  var openTop = Object.keys(openTown).map(function(k){ return [k,openTown[k]]; })
+    .sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
+  var h = '';
+  if(open.length){
+    h += '<h3 class="sec">Roofs going on right now</h3>'+
+      '<p class="sub"><b>'+open.length+' roof permits are OPEN</b> \u2014 pulled, paid for, and not signed off yet. '+
+      'The crew has not finished, or has not started. Checked against the county\u2019s book today.</p><div class="chips">';
+    openTop.forEach(function(t){ h += '<span class="chip hot">'+esc(t[0])+' &middot; '+t[1]+'</span>'; });
+    h += '</div>';
+  }
+  h += '<h3 class="sec">Where roofs are going up right now</h3>'+
     '<p class="sub">'+n30+' roof permits in the last 30 days, straight off Brevard County\u2019s own books. '+
     'A neighbour can see every one of these from the street.</p><div class="chips">';
   towns.forEach(function(t){ h += '<span class="chip hot">'+esc(t[0])+' &middot; '+t[1]+'</span>'; });
@@ -1596,7 +1623,9 @@ function proofHtml(){
   var here = titleCase(ownStreet(vis()) || S.route.name);
   var h = '<h2 class="big">'+list.length+' roof'+(list.length===1?'':'s')+' going up around this block</h2>'+
     '<p class="sub">Within a '+PROOF_MI+'-mile walk · '+n30+' in the last 30 days · '+
-    see.length+' close enough to see from the street.</p>'+
+    see.length+' close enough to see from the street'+
+    (list.filter(function(x){ return x.pend===1; }).length ? ' · <b style="color:#e07b00">'+
+      list.filter(function(x){ return x.pend===1; }).length+' still open</b>' : '')+'.</p>'+
     '<button class="btn sand" onclick="printProof()">Print this card</button>'+
     '<div class="warn"><b>Say it like this.</b> “I’m working on '+esc(here)+' today. '+
     'The county shows '+(n30 || list.length)+' roof permit'+((n30||list.length)===1?'':'s')+' pulled within half a mile '+
@@ -1604,6 +1633,15 @@ function proofHtml(){
     'I’m offering the neighbours a free look at theirs — no charge, no obligation.”<br><br>'+
     '<b>Never say</b> those houses had damage, never say what a carrier will pay, and never let anyone think Covenant did that work. '+
     'You are pointing at a public record, nothing more.</div>';
+  var openHere = list.filter(function(x){ return x.pend === 1; });
+  if(openHere.length){
+    h += '<h3 class="sec">Going on right now</h3>'+
+      '<p class="sub">Permit pulled, roof not signed off. The crew is coming, or is there.</p>';
+    openHere.slice(0,10).forEach(function(p){
+      h += '<p class="sub" style="margin:6px 0 0"><b style="color:#e07b00">'+esc(p.ad)+'</b> \u2014 permit '+ago(p.age)+
+           ' &middot; '+p.ft+' ft'+(p.who ? ' &middot; '+esc(p.who) : '')+'</p>';
+    });
+  }
   if(see.length){
     h += '<h3 class="sec">Close enough to point at</h3><div class="chips">';
     see.slice(0,14).forEach(function(p){
@@ -1631,7 +1669,7 @@ function proofCardHtml(doors, label){
     n30+' in the last 30 days. County record. Point at them; do not claim them.</b></p>'+
     '<table class="sheet"><tr><th>Address</th><th>How far</th><th>Permit issued</th><th>Roofer</th></tr>';
   list.slice(0,10).forEach(function(p){
-    h += '<tr><td>'+esc(p.ad)+'</td><td>'+p.ft+' ft</td><td>'+ago(p.age)+'</td><td>'+esc(p.who||'')+'</td></tr>';
+    h += '<tr><td>'+esc(p.ad)+(p.pend===1?' <b>(OPEN)</b>':'')+'</td><td>'+p.ft+' ft</td><td>'+ago(p.age)+'</td><td>'+esc(p.who||'')+'</td></tr>';
   });
   return h + '</table>';
 }
