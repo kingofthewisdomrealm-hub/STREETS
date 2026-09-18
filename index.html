@@ -127,9 +127,20 @@ h3.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--
 .yr{font-size:11.5px;padding:2px 6px;border-radius:4px;flex:none}
 .y0{background:#fbe3e1;color:#8d3b35}.y1{background:#fbeed4;color:#7a5a15}
 .y2{background:#f1e8d9;color:#6b5733}.y3{background:#e9ecf1;color:#5b667c}
-.mk{display:flex;gap:4px;flex:none}
-.mk button{width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink2);font-size:13px;cursor:pointer}
-.mk button.on{background:var(--navy);color:var(--word);border-color:var(--navy);font-weight:700}
+.mk{display:flex;gap:5px;flex:none}
+.mk button{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--ink2);
+  font-size:15px;font-weight:700;cursor:pointer}
+/* the marks wear a coat of paint you can read at arm's length, in the sun,
+   through a phone screen you cannot see. Contrast first, taste second. */
+.mk button.on.k{background:#0B6E2D;border-color:#0B6E2D;color:#fff;font-weight:900}
+.mk button.on.n{background:#5B667C;border-color:#5B667C;color:#fff;font-weight:900}
+.mk button.on.l{background:#FFB300;border-color:#12182B;color:#12182B;font-weight:900;box-shadow:0 0 0 2px #FFB30055}
+.door.mk-k{background:#E4F3E9;box-shadow:inset 5px 0 0 #0B6E2D;padding-left:9px;border-radius:7px}
+.door.mk-n{background:#EFF1F5;box-shadow:inset 5px 0 0 #5B667C;padding-left:9px;border-radius:7px;opacity:.62}
+.door.mk-l{background:#FFF3D1;box-shadow:inset 5px 0 0 #FFB300;padding-left:9px;border-radius:7px}
+.door.mk-l .ad b{color:#7a5400}
+.chip.knock{background:#0B6E2D;color:#fff;border-color:#0B6E2D;font-weight:700}
+.chip.lead{background:#FFB300;color:#12182B;border-color:#12182B;font-weight:800}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--ink2);margin:6px 0}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -956,11 +967,17 @@ function addOverlays(){
   if(!m.getSource('doors')){
     m.addSource('doors', { type:'geojson', data:fc() });
     m.addLayer({ id:'doors', type:'circle', source:'doors', paint:{
-      'circle-radius':['interpolate',['linear'],['zoom'], 13,3, 16,6, 19,11],
-      'circle-color':['get','color'],
-      'circle-stroke-width':['case',['==',['get','mark'],''],1.2,2.5],
-      'circle-stroke-color':['match',['get','mark'],'k','#3f7d52','l','#12182B','n','#9aa3b8','#ffffff'],
-      'circle-opacity':['case',['==',['get','mark'],'n'],.35,.95] } });
+      /* a marked door wears its mark, not the age of the house. Green = knocked,
+         amber = a lead and the biggest thing on the screen, slate = nobody home
+         and faded back. Unmarked doors keep the era colour. */
+      'circle-radius':['interpolate',['linear'],['zoom'],
+        13, ['match',['get','mark'],'l',5,3],
+        16, ['match',['get','mark'],'l',9.5,6],
+        19, ['match',['get','mark'],'l',15,11]],
+      'circle-color':['match',['get','mark'],'k','#0B6E2D','l','#FFB300','n','#5B667C',['get','color']],
+      'circle-stroke-width':['match',['get','mark'],'l',3.5,'k',2.5,'n',1.2,1.4],
+      'circle-stroke-color':['match',['get','mark'],'l','#12182B','#ffffff'],
+      'circle-opacity':['case',['==',['get','mark'],'n'],.4,1] } });
     m.addLayer({ id:'doorno', type:'symbol', source:'doors', minzoom:17.5,
       layout:{ 'text-field':['get','n'], 'text-font':FONT, 'text-size':10, 'text-offset':[0,-1.2] },
       paint:{ 'text-color':'#12182B', 'text-halo-color':'#fff', 'text-halo-width':1.4 } });
@@ -1590,8 +1607,14 @@ function renderRoute(){
        '<span class="chip">'+d.length+' doors'+(S.blocks.length>1?' in this block':'')+'</span>'+
        '<span class="chip">median built '+(med||'—')+'</span>'+
        '<span class="chip">typical value $'+(mjv?mjv.toLocaleString():'—')+'</span>'+
-       '<span class="chip hot">'+k+' knocked</span><span class="chip">'+n+' not home</span></div>'+
-       '<div class="legend">';
+       '<span class="chip knock">'+k+' knocked</span>'+
+       '<span class="chip lead">'+lcount(d)+' leads</span>'+
+       '<span class="chip">'+n+' not home</span></div>'+
+       '<div class="legend">'+
+         '<span><i class="dot" style="background:#0B6E2D"></i>knocked</span>'+
+         '<span><i class="dot" style="background:#FFB300;outline:2px solid #12182B"></i>lead</span>'+
+         '<span><i class="dot" style="background:#5B667C;opacity:.45"></i>not home</span>'+
+       '</div><div class="legend">';
   ERA_NAME.forEach(function(nm,i){ h += '<span><i class="dot" style="background:'+ERA_COLOR[i]+'"></i>'+nm+'</span>'; });
   h += '</div><p class="note">Owner and year come from the Florida Department of Revenue 2025 tax roll — public record. It is the age of the <b>house</b>, not the roof. Use it to pick a street, never to tell a homeowner what they have.</p>';
 
@@ -1600,13 +1623,13 @@ function renderRoute(){
     var stName = p.ad.slice(p.ad.indexOf(' ')+1);
     if(stName !== last){ h += '<h3 class="sec">'+esc(stName)+'</h3>'; last = stName; }
     var m = markOf(p.id), e = era(p.yr);
-    h += '<div class="door"><span class="n">'+(i+1)+'</span>'+
+    h += '<div class="door'+(m?' mk-'+m:'')+'"><span class="n">'+(i+1)+'</span>'+
       '<span class="ad"><b>'+esc(p.ad)+'</b><small>'+esc(p.own||'—')+(p.sf?' · '+p.sf+' sq ft':'')+'</small></span>'+
       '<span class="yr y'+e+'">'+(p.yr||'—')+'</span>'+
       '<span class="mk">'+
-        '<button class="'+(m==='k'?'on':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
-        '<button class="'+(m==='n'?'on':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
-        '<button class="'+(m==='l'?'on':'')+'" title="Lead" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
+        '<button class="'+(m==='k'?'on k':'')+'" title="Knocked" onclick="setMark(\''+p.id+'\',\'k\')">K</button>'+
+        '<button class="'+(m==='n'?'on n':'')+'" title="Nobody home" onclick="setMark(\''+p.id+'\',\'n\')">—</button>'+
+        '<button class="'+(m==='l'?'on l':'')+'" title="Lead" onclick="setMark(\''+p.id+'\',\'l\')">L</button>'+
       '</span></div>';
   });
   h += '<p class="note">K = somebody answered. — = nobody home, leave the card. L = a name and a number; that one becomes a CRM row inside two days.</p>'+
@@ -1615,6 +1638,8 @@ function renderRoute(){
        '<button class="btn" onclick="reload()">Refresh records</button>';
   el.innerHTML = h;
 }
+
+function lcount(d){ var n=0; d.forEach(function(p){ if(markOf(p.id)==='l') n++; }); return n; }
 
 /* ---------- the area, the legends, the heroes ---------- */
 function block(title, rows){
