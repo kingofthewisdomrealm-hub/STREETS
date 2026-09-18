@@ -26,9 +26,13 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--wash);
 button{font-family:inherit}
 
 /* ---------- the map is the app ---------- */
-#map{position:fixed;inset:0;z-index:0;background:#e8ebef}
+#map{position:fixed;inset:0;z-index:0;background:#e8ebef;touch-action:none;overscroll-behavior:none}
+#map canvas{touch-action:none}
 .maplibregl-ctrl-attrib{font-size:9px}
 .maplibregl-ctrl-bottom-right{margin-bottom:2px}
+.maplibregl-ctrl-bottom-left{margin-bottom:calc(14px + env(safe-area-inset-bottom));margin-left:10px}
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl-group button{width:42px;height:42px}
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl-group button .maplibregl-ctrl-icon{background-size:24px}
 .maplibregl-ctrl-geolocate{display:none !important}
 .maplibregl-popup-content{border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.45;
   box-shadow:0 4px 18px rgba(0,0,0,.25);max-width:260px}
@@ -913,7 +917,9 @@ function buildMap(){
     container:'map', style:styleFor(want), center:[-80.60, 27.95], zoom:8.4,
     attributionControl:{ compact:true }, maxPitch:60
   });
+  S.map.addControl(new maplibregl.NavigationControl({ showZoom:true, showCompass:false }), 'bottom-left');
   S.map.addControl(new maplibregl.NavigationControl({ showZoom:false, visualizePitch:true }), 'bottom-right');
+  S.map.dragPan.enable(); S.map.touchZoomRotate.enable(); S.map.scrollZoom.enable();
   S.geo = new maplibregl.GeolocateControl({
     positionOptions:{ enableHighAccuracy:true }, trackUserLocation:true, showUserHeading:true, showAccuracyCircle:true
   });
@@ -939,6 +945,23 @@ function locateMe(){ if(S.geo) S.geo.trigger(); }
 var FONT = ['Noto Sans Regular'];
 function addOverlays(){
   var m = S.map;
+  if(!m.getSource('storm')){
+    /* THE STORM ITSELF. One footprint per storm area: a circle that holds every
+       ground report plus three miles of margin, filled in hail colour and labelled
+       with the biggest hail that fell. Drawn first, so the neighbourhood dots and
+       every door sit inside it, on top of it. */
+    m.addSource('storm', { type:'geojson', data:fc() });
+    m.addLayer({ id:'storm-fill', type:'fill', source:'storm', filter:['==',['geometry-type'],'Polygon'], paint:{
+      'fill-color':['match',['get','kind'],'hail','#d4a24c','wind','#5b8def','#9aa3b8'], 'fill-opacity':.2 } });
+    m.addLayer({ id:'storm-line', type:'line', source:'storm', filter:['==',['geometry-type'],'Polygon'], paint:{
+      'line-color':['match',['get','kind'],'hail','#a5731f','wind','#2f5fc4','#5b667c'], 'line-width':2.5, 'line-dasharray':[3,2], 'line-opacity':1 } });
+    m.addLayer({ id:'storm-lab', type:'symbol', source:'storm', filter:['==',['geometry-type'],'Point'],
+      layout:{ 'text-field':['get','label'], 'text-font':FONT, 'text-size':['interpolate',['linear'],['zoom'], 7,11, 10,14, 13,16],
+               'text-anchor':'bottom', 'text-offset':[0,-0.4], 'text-line-height':1.25, 'text-max-width':14,
+               'text-allow-overlap':true, 'text-ignore-placement':true },
+      paint:{ 'text-color':['match',['get','kind'],'hail','#6b4a0a','wind','#1f3f8a','#3a4358'],
+              'text-halo-color':'#ffffff', 'text-halo-width':2.6 } });
+  }
   if(!m.getSource('rings')){
     m.addSource('rings', { type:'geojson', data:fc() });
     m.addLayer({ id:'rings-fill', type:'fill', source:'rings', paint:{ 'fill-color':'#d4a24c', 'fill-opacity':.07 } });
@@ -1035,11 +1058,39 @@ function addOverlays(){
         .setHTML('<b>'+esc(p.mag)+' '+esc(p.kind)+'</b><br>'+esc(p.t)+'<br>'+esc(p.txt)).addTo(m);
     });
   }
+  /* the storm's name and hail size go on top of the stack, above route names */
+  if(m.getLayer('storm-lab')) m.moveLayer('storm-lab');
 }
 function clearMarkers(){ MARKERS.forEach(function(m){ m.remove(); }); MARKERS = []; }
 function setData(id, data){ var s = S.map.getSource(id); if(s) s.setData(data); }
 function fc(f){ return { type:'FeatureCollection', features:f||[] }; }
 function pt(lat, lon, props){ return { type:'Feature', geometry:{ type:'Point', coordinates:[lon,lat] }, properties:props }; }
+/* One storm, one shape. Centre on the ground reports, reach out far enough to
+   hold all of them plus three miles, and say the biggest hail that fell there.
+   Hail wins over wind for the colour; radar-only areas have no reports and get
+   no footprint, because nobody on the ground saw anything. */
+function stormFootprint(a){
+  var reps = a.reports || [];
+  if(!reps.length) return null;
+  var hail = reps.filter(function(r){ return r.kind === 'hail'; });
+  var use = hail.length ? hail : reps;
+  var la = 0, lo = 0;
+  use.forEach(function(r){ la += r.lat; lo += r.lon; });
+  la /= use.length; lo /= use.length;
+  var far = 0;
+  reps.forEach(function(r){ far = Math.max(far, miles([la, lo], [r.lat, r.lon])); });
+  var rad = Math.max(4, far + 3);
+  var big = 0, bigTxt = '';
+  hail.forEach(function(r){ var m = parseFloat(r.mag); if(m > big){ big = m; bigTxt = r.mag; } });
+  var gust = 0, gustTxt = '';
+  reps.forEach(function(r){ if(r.kind !== 'hail'){ var m = parseFloat(r.mag); if(m > gust){ gust = m; gustTxt = r.mag; } } });
+  var kind = hail.length ? 'hail' : 'wind';
+  var line2 = hail.length ? bigTxt + ' hail' : gustTxt + ' gusts';
+  if(hail.length && gustTxt) line2 += ' \u00b7 ' + gustTxt;
+  var poly = ring(la, lo, rad); poly.properties = { kind:kind, id:a.id };
+  var lab = pt(la + rad/69, lo, { kind:kind, id:a.id, label:a.name + '\n' + line2 + '\n' + (a.when||'') });
+  return { poly:poly, label:lab, lat:la, lon:lo, rad:rad };
+}
 function ring(lat, lon, miles){
   var pts = [], R = miles/69;
   for(var i=0;i<=48;i++){
@@ -1063,16 +1114,18 @@ function paintOverview(){
   if(!S.styled) return;
   clearMarkers();
   setData('doors', fc()); setData('rrdoors', fc());
-  var pts = [], rings = [], storms = [], routes = [];
+  var pts = [], storms = [], routes = [], foot = [];
   AREAS.forEach(function(a){
     if(S.area !== 'all' && S.area !== a.id) return;
     (a.reports||[]).forEach(function(rep){
       pts.push([rep.lat, rep.lon]);
-      rings.push(ring(rep.lat, rep.lon, 7));
       storms.push(pt(rep.lat, rep.lon, { mag:rep.mag, kind:(rep.kind==='hail'?'hail':'wind'), t:rep.t, txt:rep.txt }));
     });
+    var f = stormFootprint(a);
+    if(f){ foot.push(f.poly); foot.push(f.label); }
   });
-  setData('rings', fc(rings));
+  setData('rings', fc());
+  setData('storm', fc(foot));
   setData('storms', fc(storms));
   ROUTES.forEach(function(r){
     if(S.area !== 'all' && S.area !== r.area) return;
@@ -1095,6 +1148,8 @@ function paintRoute(){
   setData('rings', fc());
   var shown = vis(), pts = [], feats = [];
   var a = AREAS.filter(function(x){ return x.id===S.route.area; })[0];
+  var f = a ? stormFootprint(a) : null;
+  setData('storm', fc(f ? [f.poly] : []));
   setData('routes', fc());
   setData('storms', fc((a.reports||[]).map(function(rep){
     return pt(rep.lat, rep.lon, { mag:rep.mag, kind:(rep.kind==='hail'?'hail':'wind'), t:rep.t, txt:rep.txt });
